@@ -155,7 +155,7 @@ một giá trị bền vững để có thể bật lại auth cũ sau này. N�
 Thiết lập Render:
 
 ```text
-Build Command: npm ci && npm run build
+Build Command: npm ci --include=dev && npm run build
 Start Command: npm run start
 Health Check Path: /health
 ```
@@ -163,3 +163,35 @@ Health Check Path: /health
 File `render.yaml` dùng `generateValue: true` cho JWT và `sync: false` cho các
 secret. Đối với service Render đã tồn tại, vẫn phải nhập secret trực tiếp trong
 Dashboard trước khi redeploy.
+
+## 8. Deploy PowerPoint worker bằng Docker trên Render
+
+API Render không có LibreOffice/Poppler, vì vậy cần service **Background Worker**
+riêng. `Dockerfile.worker` cài `libreoffice-impress`, `pdftoppm` và `pdftotext`,
+rồi chạy `scripts/process-materials.mjs --watch` để nhận job từ
+`processing_jobs` trong Supabase.
+
+Trong Render Dashboard:
+
+1. Chọn **New → Background Worker** và kết nối cùng repo backend.
+2. Chọn runtime **Docker** và Dockerfile path `./Dockerfile.worker`.
+3. Chọn compute plan tối thiểu `0.5c-512mb`.
+4. Sao chép các Environment Variables sau từ Web Service API:
+
+```text
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
+MONGODB_URI
+OPENAI_API_KEY
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+OPENAI_QUESTION_MODEL=gpt-5.6-luna
+MONGODB_DATABASE=examcure
+MONGODB_VECTOR_COLLECTION=material_chunks
+MONGODB_VECTOR_INDEX=material_vector_index
+MONGODB_VECTOR_DIMENSIONS=1536
+MATERIAL_WORKER_NAME=render-material-worker
+```
+
+Background Worker của Render không có free tier; chỉ tạo service khi đã chấp
+nhận chi phí compute. Sau khi deploy, log worker phải tiếp tục chạy mà không
+thoát; khi có PowerPoint được upload, log sẽ ghi số slide và chunk đã xử lý.

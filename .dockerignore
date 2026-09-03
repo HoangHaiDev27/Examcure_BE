@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+node_modules
+dist
+data
+coverage
+*.log
+README.md
+docs
+src
+supabase
+tests

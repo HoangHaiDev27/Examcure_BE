@@ -59,8 +59,13 @@ Auth, backend mặc định đặt `ENABLE_LEGACY_AUTH=false`; khi đó không m
 OpenAI và `CORS_ORIGIN` phải nhập trong Render Dashboard.
 
 Nếu service đã được tạo thủ công, `render.yaml` không tự cập nhật Environment
-của service đó. Hãy thêm các biến theo `docs/AI_BACKEND_SETUP.md`, sau đó chọn
+của service đó. Hãy thêm các biến theo `docs/AI_BACKEND_SETUP.md`, đặt Build
+Command thành `npm ci --include=dev && npm run build`, sau đó chọn
 **Manual Deploy → Deploy latest commit**.
+
+Worker PowerPoint là Docker Background Worker riêng vì cần LibreOffice và
+Poppler; xem phần 8 trong `docs/AI_BACKEND_SETUP.md`. Render không cung cấp
+Background Worker miễn phí.
 
 ## Ghi chú bảo mật
 
