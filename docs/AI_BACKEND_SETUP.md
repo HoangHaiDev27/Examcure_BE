@@ -4,11 +4,14 @@
 
 - Supabase Auth và PostgreSQL là nguồn dữ liệu chính cho tài khoản, môn học,
   tài liệu, slide, câu hỏi, đề thi, trạng thái xử lý và audit log.
-- Supabase Storage giữ PowerPoint gốc, PDF xem trước và ảnh từng slide.
+- Supabase Storage giữ PowerPoint gốc. Ở chế độ miễn phí không worker, hệ thống
+  chỉ trích text/note trong `.pptx`; không tạo PDF xem trước hoặc ảnh slide.
 - MongoDB Atlas chỉ giữ chunk văn bản và embedding dẫn xuất. Dữ liệu này có thể
   được tạo lại từ file và metadata trong Supabase.
 - OpenAI tạo embedding và sinh câu hỏi JSON có cấu trúc.
-- Worker Node chạy riêng với web API để dùng LibreOffice và Poppler.
+- Render Web API xử lý đồng bộ text/note của `.pptx`, tạo embedding và ghi
+  MongoDB ngay sau khi admin upload. Worker Docker chỉ là lựa chọn bổ sung nếu
+  sau này cần PDF/ảnh slide hoặc file `.ppt` cũ.
 
 ## 1. Cấu hình môi trường
 
@@ -42,8 +45,9 @@ Chạy migration bằng Supabase CLI hoặc SQL Editor:
 supabase/migrations/202608310001_examcure_ai.sql
 ```
 
-Migration tạo schema, RLS, private Storage buckets, RPC nhận job và RPC lưu đề
-theo giao dịch. Service-role key chỉ được dùng trong API/worker backend.
+Migration tạo schema, RLS, private Storage buckets, RPC nhận job (chỉ dùng cho
+worker tùy chọn) và RPC lưu đề theo giao dịch. Service-role key chỉ được dùng
+trong backend.
 
 Sau khi đăng ký tài khoản quản trị, cấp vai trò một lần trong SQL Editor:
 
@@ -68,9 +72,30 @@ npm run setup:mongodb-vector
 Lệnh tạo unique index `chunk_id`, index lọc phiên bản và Vector Search index có
 tên từ `MONGODB_VECTOR_INDEX`.
 
-## 4. Công cụ chuyển PowerPoint
+## 4. Chế độ miễn phí: xử lý trực tiếp trong API Render
 
-Máy chạy worker cần:
+Không cần Background Worker và không cần cài LibreOffice/Poppler. Admin chỉ
+upload `.pptx` tối đa **20 MB**. Sau khi file được đưa vào Supabase Storage,
+API Render sẽ đồng bộ:
+
+1. đọc text và speaker notes từ từng slide;
+2. lưu text vào bảng `slides` của Supabase (không có `image_path`);
+3. tạo embedding qua OpenAI và lưu chunk vào MongoDB Atlas;
+4. đưa `material_versions.status` về `ready` để có thể tạo câu hỏi AI.
+
+Giữ request upload mở đến khi hoàn tất. Vì vậy file lớn/nhiều text sẽ chậm hơn
+và vẫn phát sinh chi phí OpenAI embedding. Chế độ này không hỗ trợ `.ppt`,
+không dựng PDF, không sinh ảnh slide và không trích được text nằm trong ảnh.
+
+Sau khi tài liệu `ready`, sinh viên đã đăng nhập có thể xem text/note từng slide
+trực tiếp tại trang môn học và tải file `.pptx` gốc. API chỉ tạo link tải private
+có hiệu lực 60 giây; không đưa `SUPABASE_SERVICE_ROLE_KEY` hoặc link Storage cố
+định ra frontend.
+
+## 5. Worker chuyển PowerPoint (tùy chọn, có phí Render)
+
+Chỉ dùng phần này khi cần chuyển `.ppt/.pptx` thành PDF và ảnh slide. Máy chạy
+worker cần:
 
 - LibreOffice (`soffice`) để chuyển `.ppt/.pptx` thành PDF.
 - Poppler `pdftoppm` để render ảnh PNG.
@@ -85,22 +110,15 @@ where.exe pdftoppm
 where.exe pdftotext
 ```
 
-## 5. Chạy local
+## 6. Chạy local
 
-Mở hai terminal tại repo backend:
+Với chế độ không worker, chỉ mở một terminal tại repo backend:
 
 ```powershell
 npm run dev
 ```
 
 ```powershell
-npm run worker:materials
-```
-
-Chạy một vòng nhận job rồi thoát:
-
-```powershell
-npm run worker:materials:once
 ```
 
 UI chạy ở repo riêng và chỉ cần các biến public:
@@ -111,11 +129,11 @@ NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 ```
 
-Luồng `/admin`: tạo môn học, upload PowerPoint bằng signed URL, worker chuyển
-slide và ghi vector, admin yêu cầu AI tạo câu hỏi nháp, duyệt câu hỏi, rồi tạo
-hoặc xuất bản đề thi.
+Luồng `/admin`: tạo môn học, upload `.pptx` bằng signed URL, API trích text/note
+và ghi vector, admin yêu cầu AI tạo câu hỏi nháp, duyệt câu hỏi, rồi tạo hoặc
+xuất bản đề thi.
 
-## 6. Kiểm tra trước khi triển khai hạ tầng
+## 7. Kiểm tra trước khi triển khai hạ tầng
 
 ```powershell
 npm run typecheck
@@ -124,11 +142,11 @@ npm run test:materials
 npm run build
 ```
 
-Sau khi có Supabase/MongoDB và bộ chuyển đổi thật, cần chạy E2E với một `.pptx`:
-kiểm tra PDF/ảnh trong Storage, số slide trong PostgreSQL, chunk trong MongoDB,
-citation của câu hỏi và quyền truy cập student/admin.
+Sau khi có Supabase/MongoDB/OpenAI thật, cần chạy E2E với một `.pptx`: kiểm tra
+số slide trong PostgreSQL, chunk trong MongoDB, citation của câu hỏi và quyền
+truy cập student/admin. PDF/ảnh chỉ xuất hiện khi có worker tùy chọn.
 
-## 7. Deploy API lên Render
+## 8. Deploy API lên Render
 
 Backend Express chạy trên Render Web Service; Supabase vẫn là Auth, PostgreSQL
 và Storage. Với service tạo thủ công, thêm các biến sau trong **Environment**:
@@ -164,12 +182,12 @@ File `render.yaml` dùng `generateValue: true` cho JWT và `sync: false` cho cá
 secret. Đối với service Render đã tồn tại, vẫn phải nhập secret trực tiếp trong
 Dashboard trước khi redeploy.
 
-## 8. Deploy PowerPoint worker bằng Docker trên Render
+## 9. Deploy PowerPoint worker bằng Docker trên Render (tùy chọn)
 
-API Render không có LibreOffice/Poppler, vì vậy cần service **Background Worker**
-riêng. `Dockerfile.worker` cài `libreoffice-impress`, `pdftoppm` và `pdftotext`,
-rồi chạy `scripts/process-materials.mjs --watch` để nhận job từ
-`processing_jobs` trong Supabase.
+Không tạo service này cho chế độ miễn phí ở mục 4. API đã xử lý `.pptx` text
+trực tiếp. Chỉ tạo khi cần PDF/ảnh slide hoặc file `.ppt` cũ.
+`Dockerfile.worker` cài `libreoffice-impress`, `pdftoppm` và `pdftotext`, rồi
+chạy `scripts/process-materials.mjs --watch` để nhận job từ `processing_jobs`.
 
 Trong Render Dashboard:
 

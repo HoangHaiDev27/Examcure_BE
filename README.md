@@ -4,8 +4,9 @@ Node.js/TypeScript API tương thích với `ExamCureUI`. Mặc định server c
 `http://localhost:5010`, API prefix là `/api/v1`, Swagger UI ở `/api-docs`.
 
 Supabase là cơ sở dữ liệu chính cho auth, tài liệu, câu hỏi và đề thi. MongoDB
-Atlas chỉ lưu chunk/embedding dẫn xuất để tìm kiếm vector. Worker PowerPoint và
-mọi khóa bí mật đều thuộc repo backend này.
+Atlas chỉ lưu chunk/embedding dẫn xuất để tìm kiếm vector. Ở chế độ miễn phí,
+Render API trích text/note của `.pptx` và lập chỉ mục ngay trong request; không
+cần Worker PowerPoint.
 
 ## Chạy local
 
@@ -20,7 +21,7 @@ npm run dev
 
 File dữ liệu auth cũ được tạo tại `data/examcure.sqlite`. Frontend mặc định gọi
 `http://localhost:5010/api/v1`; nếu cần đổi, đặt `NEXT_PUBLIC_API_URL` trong UI.
-Để dùng pipeline AI, làm theo [hướng dẫn Supabase/MongoDB/worker](docs/AI_BACKEND_SETUP.md).
+Để dùng pipeline AI, làm theo [hướng dẫn Supabase/MongoDB](docs/AI_BACKEND_SETUP.md).
 
 ## API chính
 
@@ -38,6 +39,9 @@ File dữ liệu auth cũ được tạo tại `data/examcure.sqlite`. Frontend 
 | GET/PATCH | `/api/v1/Users/me` | Đọc/cập nhật hồ sơ (Bearer JWT) |
 | GET | `/api/v1/System/status` | Kiểm tra cấu hình tích hợp, không trả secret |
 | GET/POST/PATCH | `/api/v1/Admin/*` | Quản trị môn, tài liệu, AI, câu hỏi và đề thi (Supabase admin) |
+| GET | `/api/v1/Materials` | Danh sách giáo trình READY của môn học (Supabase session) |
+| GET | `/api/v1/Materials/{versionId}/slides` | Text/note slide để xem trực tiếp, không cần Worker |
+| GET | `/api/v1/Materials/{versionId}/download` | Link tải `.pptx` private có hạn 60 giây |
 
 Trong `development`/`test`, OTP được in ra console và trả trong JSON khi
 `DEV_EXPOSE_OTP=true`. Production không trả OTP và bắt buộc có SMTP.
@@ -63,9 +67,10 @@ của service đó. Hãy thêm các biến theo `docs/AI_BACKEND_SETUP.md`, đ�
 Command thành `npm ci --include=dev && npm run build`, sau đó chọn
 **Manual Deploy → Deploy latest commit**.
 
-Worker PowerPoint là Docker Background Worker riêng vì cần LibreOffice và
-Poppler; xem phần 8 trong `docs/AI_BACKEND_SETUP.md`. Render không cung cấp
-Background Worker miễn phí.
+Chế độ mặc định không cần Worker: chỉ nhận `.pptx` tối đa 20 MB và không tạo
+PDF/ảnh slide. Docker Background Worker với LibreOffice/Poppler vẫn có sẵn cho
+nhu cầu đó; Render không cung cấp Background Worker miễn phí. Xem mục 9 trong
+`docs/AI_BACKEND_SETUP.md`.
 
 ## Ghi chú bảo mật
 

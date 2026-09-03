@@ -35,5 +35,6 @@ export function integrationStatus() {
       commandAvailable("LIBREOFFICE_BIN", "soffice", ["--version"]) &&
       commandAvailable("PDFTOPPM_BIN", "pdftoppm", ["-v"]) &&
       commandAvailable("PDFTOTEXT_BIN", "pdftotext", ["-v"]),
+    pptxTextExtraction: true,
   };
 }

@@ -61,6 +61,7 @@ describe("ExamCure API", () => {
         mongodb: expect.any(Boolean),
         openai: expect.any(Boolean),
         converter: expect.any(Boolean),
+        pptxTextExtraction: true,
       },
     });
     expect(JSON.stringify(response.body)).not.toContain("sk-");
@@ -69,6 +70,13 @@ describe("ExamCure API", () => {
   it("rejects unauthenticated admin API calls before opening integrations", async () => {
     const app = setup();
     const response = await request(app).get("/api/v1/Admin/overview");
+    expect(response.status).toBe(401);
+    expect(response.body).toMatchObject({ code: "AUTH_REQUIRED" });
+  });
+
+  it("rejects material viewing without a Supabase session", async () => {
+    const app = setup();
+    const response = await request(app).get("/api/v1/Materials?schoolCode=fptu&subjectCode=CSD201");
     expect(response.status).toBe(401);
     expect(response.body).toMatchObject({ code: "AUTH_REQUIRED" });
   });

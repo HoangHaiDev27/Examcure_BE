@@ -5,6 +5,7 @@ import { generateQuestionsFromContext } from "../integrations/openai.js";
 import { getStorageBuckets, getSupabaseAdmin } from "../integrations/supabase.js";
 import { retrieveMaterialChunks } from "../integrations/vector-search.js";
 import { AppError } from "../lib/errors.js";
+import { ingestPptxMaterialVersion } from "../services/pptx-ingestion.service.js";
 import { requireSupabaseAdmin } from "./supabase-admin.middleware.js";
 import { validateBody } from "./validation.js";
 
@@ -25,7 +26,7 @@ const materialSchema = z.object({
   description: z.string().trim().max(1000).optional(),
   fileName: z.string().trim().min(1).max(255),
   mimeType: z.string().trim().min(1).max(200),
-  sizeBytes: z.number().int().positive().max(100 * 1024 * 1024),
+  sizeBytes: z.number().int().positive().max(20 * 1024 * 1024),
 });
 const subjectSchema = z.object({
   schoolCode: z.string().trim().min(1).max(50),
@@ -84,12 +85,11 @@ export function createAdminRouter(): Router {
     const fileName = safeFileName(body.fileName);
     const extension = fileName.toLowerCase().split(".").pop();
     const allowedMime = new Set([
-      "application/vnd.ms-powerpoint",
       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
       "application/octet-stream",
     ]);
-    if (!fileName || !["ppt", "pptx"].includes(extension || "") || !allowedMime.has(body.mimeType)) {
-      throw new AppError(400, "Chỉ chấp nhận file PowerPoint .ppt hoặc .pptx.", "INVALID_FILE");
+    if (!fileName || extension !== "pptx" || !allowedMime.has(body.mimeType)) {
+      throw new AppError(400, "Chỉ chấp nhận file PowerPoint .pptx tối đa 20 MB.", "INVALID_FILE");
     }
     const supabase = getSupabaseAdmin();
     const actorId = identity.bootstrap ? null : identity.id;
@@ -143,14 +143,17 @@ export function createAdminRouter(): Router {
     if (!objects?.some((item) => item.name === fileName)) throw new AppError(409, "File chưa được upload hoàn tất.", "UPLOAD_INCOMPLETE");
     const { error: updateError } = await supabase.from("material_versions").update({ status: "uploaded", error_message: null }).eq("id", versionId);
     if (updateError) throw updateError;
-    const { data: existing } = await supabase.from("processing_jobs").select("id").eq("job_type", "material_ingestion").in("status", ["queued", "running"]).contains("payload", { material_version_id: versionId }).maybeSingle();
-    let jobId = existing?.id;
-    if (!jobId) {
-      const { data: job, error: jobError } = await supabase.from("processing_jobs").insert({ job_type: "material_ingestion", payload: { material_version_id: versionId } }).select("id").single();
-      if (jobError) throw jobError;
-      jobId = job.id;
+    try {
+      const result = await ingestPptxMaterialVersion(versionId);
+      res.json({ versionId, status: "ready", ...result });
+    } catch (processingError) {
+      throw new AppError(
+        422,
+        "Không thể trích xuất nội dung PowerPoint. Kiểm tra trạng thái tài liệu để xem lỗi chi tiết.",
+        "PPTX_PROCESSING_FAILED",
+        { reason: processingError instanceof Error ? processingError.message : "Unknown error" },
+      );
     }
-    res.json({ versionId, jobId, status: "queued" });
   }));
 
   const generationSchema = z.object({
