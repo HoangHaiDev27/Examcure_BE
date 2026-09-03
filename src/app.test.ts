@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import request from "supertest";
 import { createApp } from "./app.js";
-import { loadConfig } from "./config.js";
+import { loadConfig, type AppConfig } from "./config.js";
 import type { AppDatabase } from "./db/database.js";
 
 const config = loadConfig({
@@ -17,8 +17,8 @@ afterEach(() => {
   currentDb = undefined;
 });
 
-function setup() {
-  const built = createApp(config, {
+function setup(appConfig: AppConfig = config) {
+  const built = createApp(appConfig, {
     otpSender: { async send() {} },
     googleVerifier: async () => ({ subject: "google-123", email: "google@example.com", fullName: "Google User" })
   });
@@ -27,6 +27,52 @@ function setup() {
 }
 
 describe("ExamCure API", () => {
+  it("allows Supabase-only production without legacy JWT or SMTP configuration", () => {
+    const production = loadConfig({
+      NODE_ENV: "production",
+    });
+    expect(production.ENABLE_LEGACY_AUTH).toBe(false);
+    expect(production.SMTP_HOST).toBeUndefined();
+  });
+
+  it("keeps strict production secrets when legacy authentication is enabled", () => {
+    expect(() => loadConfig({
+      NODE_ENV: "production",
+      ENABLE_LEGACY_AUTH: "true",
+    })).toThrow("JWT_SECRET must be changed in production");
+  });
+
+  it("does not expose legacy auth routes in Supabase-only mode", async () => {
+    const app = setup({ ...config, ENABLE_LEGACY_AUTH: false });
+    const response = await request(app).post("/api/v1/Auth/login").send({
+      email: "student@example.com",
+      password: "secret123",
+    });
+    expect(response.status).toBe(404);
+  });
+
+  it("reports integration configuration without exposing secrets", async () => {
+    const app = setup();
+    const response = await request(app).get("/api/v1/System/status");
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      services: {
+        supabase: expect.any(Boolean),
+        mongodb: expect.any(Boolean),
+        openai: expect.any(Boolean),
+        converter: expect.any(Boolean),
+      },
+    });
+    expect(JSON.stringify(response.body)).not.toContain("sk-");
+  });
+
+  it("rejects unauthenticated admin API calls before opening integrations", async () => {
+    const app = setup();
+    const response = await request(app).get("/api/v1/Admin/overview");
+    expect(response.status).toBe(401);
+    expect(response.body).toMatchObject({ code: "AUTH_REQUIRED" });
+  });
+
   it("registers, verifies OTP and returns the current user", async () => {
     const app = setup();
     const registration = await request(app).post("/api/v1/Auth/register").send({

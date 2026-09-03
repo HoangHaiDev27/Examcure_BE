@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { createApp } from "./app.js";
 import { loadConfig } from "./config.js";
+import { closeMongoClient } from "./integrations/mongodb.js";
 
 const config = loadConfig();
 const { app, db } = createApp(config);
@@ -13,7 +14,8 @@ server.listen(config.PORT, () => {
 
 function shutdown(signal: string) {
   console.info(`${signal} received, shutting down...`);
-  server.close(() => {
+  server.close(async () => {
+    await closeMongoClient();
     db.close();
     process.exit(0);
   });

@@ -39,7 +39,7 @@ export function createApp(config: AppConfig, dependencies: AppDependencies = {})
   app.get("/api/v1/health", (_req, res) => res.json({ status: "ok", service: "examcure-be" }));
   app.get("/openapi.json", (_req, res) => res.json(openApiDocument));
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
-  app.use("/api/v1", createApiRouter(auth, tokens, db));
+  app.use("/api/v1", createApiRouter(auth, tokens, db, config.ENABLE_LEGACY_AUTH));
 
   app.use((_req, _res, next) => next(new AppError(404, "Không tìm thấy endpoint.", "NOT_FOUND")));
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {

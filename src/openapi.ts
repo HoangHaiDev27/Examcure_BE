@@ -1,8 +1,8 @@
 export const openApiDocument = {
   openapi: "3.1.0",
-  info: { title: "ExamCure API", version: "1.0.0", description: "Authentication and user API for ExamCure." },
+  info: { title: "ExamCure API", version: "1.1.0", description: "Authentication, content ingestion and AI exam API for ExamCure." },
   servers: [{ url: "http://localhost:5010/api/v1" }],
-  tags: [{ name: "Auth" }, { name: "Users" }],
+  tags: [{ name: "System" }, { name: "Auth" }, { name: "Users" }, { name: "Admin" }],
   components: {
     securitySchemes: { bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" } },
     schemas: {
@@ -14,6 +14,7 @@ export const openApiDocument = {
     }
   },
   paths: {
+    "/System/status": { get: { tags: ["System"], summary: "Read integration configuration status", responses: { "200": { description: "Configuration flags" } } } },
     "/Auth/register": { post: { tags: ["Auth"], summary: "Register and send verification OTP", responses: { "201": { description: "Created" }, "409": { description: "Email exists" } } } },
     "/Auth/verify-otp": { post: { tags: ["Auth"], summary: "Verify email and issue tokens", responses: { "200": { description: "Authenticated" } } } },
     "/Auth/login": { post: { tags: ["Auth"], summary: "Login with email and password", responses: { "200": { description: "Authenticated" } } } },
@@ -26,6 +27,13 @@ export const openApiDocument = {
     "/Users/me": {
       get: { tags: ["Users"], security: [{ bearerAuth: [] }], summary: "Get current user", responses: { "200": { description: "User" } } },
       patch: { tags: ["Users"], security: [{ bearerAuth: [] }], summary: "Update current user", responses: { "200": { description: "Updated user" } } }
-    }
+    },
+    "/Admin/overview": { get: { tags: ["Admin"], security: [{ bearerAuth: [] }], summary: "Load the admin content overview", responses: { "200": { description: "Overview" }, "401": { description: "Authentication required" }, "403": { description: "Admin role required" } } } },
+    "/Admin/subjects": { post: { tags: ["Admin"], security: [{ bearerAuth: [] }], summary: "Create or update a subject", responses: { "201": { description: "Subject saved" } } } },
+    "/Admin/materials": { post: { tags: ["Admin"], security: [{ bearerAuth: [] }], summary: "Create a material version and signed upload URL", responses: { "201": { description: "Signed upload details" } } } },
+    "/Admin/materials/{versionId}/complete-upload": { post: { tags: ["Admin"], security: [{ bearerAuth: [] }], summary: "Verify upload and queue material processing", parameters: [{ name: "versionId", in: "path", required: true, schema: { type: "string", format: "uuid" } }], responses: { "200": { description: "Processing job queued" } } } },
+    "/Admin/question-generation": { post: { tags: ["Admin"], security: [{ bearerAuth: [] }], summary: "Retrieve source chunks and generate draft questions", responses: { "201": { description: "Questions generated" } } } },
+    "/Admin/questions/{questionId}": { patch: { tags: ["Admin"], security: [{ bearerAuth: [] }], summary: "Edit or review a generated question", parameters: [{ name: "questionId", in: "path", required: true, schema: { type: "string", format: "uuid" } }], responses: { "200": { description: "Question updated" } } } },
+    "/Admin/exams": { post: { tags: ["Admin"], security: [{ bearerAuth: [] }], summary: "Create an exam from approved questions", responses: { "201": { description: "Exam created" } } } }
   }
 } as const;

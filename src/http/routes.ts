@@ -7,14 +7,27 @@ import type { AuthService } from "../services/auth.service.js";
 import type { TokenService } from "../services/token.service.js";
 import { requireAuth } from "./auth.middleware.js";
 import { validateBody } from "./validation.js";
+import { integrationStatus } from "../integrations/env.js";
+import { createAdminRouter } from "./admin.routes.js";
 
 const email = z.string().trim().email().max(254);
 const password = z.string().min(6).max(128);
 const otp = z.string().regex(/^\d{6}$/);
 const authLimiter = rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-8", legacyHeaders: false });
+const adminLimiter = rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: "draft-8", legacyHeaders: false });
 
-export function createApiRouter(auth: AuthService, tokens: TokenService, db: AppDatabase): Router {
+export function createApiRouter(
+  auth: AuthService,
+  tokens: TokenService,
+  db: AppDatabase,
+  legacyAuthEnabled = true,
+): Router {
   const router = Router();
+
+  router.get("/System/status", (_req, res) => res.json({ services: integrationStatus() }));
+  router.use("/Admin", adminLimiter, createAdminRouter());
+  if (!legacyAuthEnabled) return router;
+
   const authenticated = requireAuth(tokens, db);
 
   router.use("/Auth", authLimiter);

@@ -15,6 +15,7 @@ const schema = z.object({
   OTP_TTL_MIN: z.coerce.number().int().positive().default(10),
   OTP_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
   DEV_EXPOSE_OTP: booleanFromEnv.default(true),
+  ENABLE_LEGACY_AUTH: booleanFromEnv.optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().default(587),
@@ -22,13 +23,17 @@ const schema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().default("ExamCure <no-reply@examcure.local>")
-});
+}).transform((config) => ({
+  ...config,
+  ENABLE_LEGACY_AUTH:
+    config.ENABLE_LEGACY_AUTH ?? config.NODE_ENV !== "production",
+}));
 
 export type AppConfig = z.infer<typeof schema>;
 
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
   const config = schema.parse(source);
-  if (config.NODE_ENV === "production") {
+  if (config.NODE_ENV === "production" && config.ENABLE_LEGACY_AUTH) {
     if (config.JWT_SECRET === "examcure-development-secret-change-me") {
       throw new Error("JWT_SECRET must be changed in production");
     }
