@@ -9,6 +9,7 @@ import { requireAuth } from "./auth.middleware.js";
 import { validateBody } from "./validation.js";
 import { integrationStatus } from "../integrations/env.js";
 import { createAdminRouter } from "./admin.routes.js";
+import { createAdminBootstrapRouter } from "./admin-bootstrap.routes.js";
 import { createMaterialsRouter } from "./materials.routes.js";
 
 const email = z.string().trim().email().max(254);
@@ -21,12 +22,12 @@ export function createApiRouter(
   auth: AuthService,
   tokens: TokenService,
   db: AppDatabase,
-  legacyAuthEnabled = true,
+  legacyAuthEnabled = false,
 ): Router {
   const router = Router();
 
   router.get("/System/status", (_req, res) => res.json({ services: integrationStatus() }));
-  router.use("/Admin", adminLimiter, createAdminRouter());
+  router.use("/Admin", adminLimiter, createAdminBootstrapRouter(), createAdminRouter());
   router.use("/Materials", createMaterialsRouter());
   if (!legacyAuthEnabled) return router;
 

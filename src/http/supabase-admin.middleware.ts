@@ -1,4 +1,3 @@
-import { timingSafeEqual } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 import { getSupabaseAdmin } from "../integrations/supabase.js";
 import { AppError } from "../lib/errors.js";
@@ -18,12 +17,6 @@ declare global {
   }
 }
 
-function sameSecret(actual: string, expected: string): boolean {
-  const left = Buffer.from(actual);
-  const right = Buffer.from(expected);
-  return left.length === right.length && timingSafeEqual(left, right);
-}
-
 export async function requireSupabaseAdmin(
   req: Request,
   _res: Response,
@@ -33,12 +26,6 @@ export async function requireSupabaseAdmin(
     const [scheme, token] = req.header("authorization")?.split(" ") ?? [];
     if (scheme !== "Bearer" || !token) {
       throw new AppError(401, "Bạn cần đăng nhập để tiếp tục.", "AUTH_REQUIRED");
-    }
-    const bootstrap = process.env.ADMIN_BOOTSTRAP_TOKEN?.trim();
-    if (bootstrap && bootstrap.length >= 32 && sameSecret(token, bootstrap)) {
-      req.adminIdentity = { id: "00000000-0000-0000-0000-000000000000", email: null, name: "Bootstrap admin", bootstrap: true };
-      next();
-      return;
     }
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase.auth.getUser(token);

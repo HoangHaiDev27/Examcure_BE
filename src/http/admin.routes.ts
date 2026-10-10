@@ -65,6 +65,65 @@ export function createAdminRouter(): Router {
     });
   }));
 
+  router.get("/users", asyncHandler(async (req, res) => {
+    admin(req);
+    const supabase = getSupabaseAdmin();
+    const [{ data: profiles, error: profilesError }, authUsers] = await Promise.all([
+      supabase.from("profiles").select("id, full_name, school_id, role, created_at").order("created_at", { ascending: false }),
+      // Email sống ở auth.users, không có trên profiles — listUsers() cần service-role key (đã dùng ở getSupabaseAdmin()).
+      // perPage giới hạn 200: đủ cho quy mô hiện tại của trường; nếu vượt mốc này cần thêm phân trang thật.
+      supabase.auth.admin.listUsers({ page: 1, perPage: 200 }),
+    ]);
+    if (profilesError) throw profilesError;
+    if (authUsers.error) throw authUsers.error;
+    const emailById = new Map(authUsers.data.users.map((authUser) => [authUser.id, authUser.email ?? null]));
+    res.json({
+      users: (profiles ?? []).map((profile) => ({
+        id: profile.id,
+        email: emailById.get(profile.id) ?? null,
+        fullName: profile.full_name,
+        schoolId: profile.school_id,
+        role: profile.role,
+        createdAt: profile.created_at,
+      })),
+    });
+  }));
+
+  const roleSchema = z.object({ role: z.enum(["student", "admin"]) });
+  router.patch("/users/:userId/role", validateBody(roleSchema), asyncHandler(async (req, res) => {
+    const identity = admin(req);
+    const userId = uuid.parse(req.params.userId);
+    const { role } = req.body as z.infer<typeof roleSchema>;
+    if (userId === identity.id) {
+      throw new AppError(400, "Không thể tự đổi vai trò của chính mình. Nhờ một admin khác thực hiện.", "SELF_ROLE_CHANGE");
+    }
+    const supabase = getSupabaseAdmin();
+    const { data: target, error: targetError } = await supabase.from("profiles").select("id, role, full_name").eq("id", userId).maybeSingle();
+    if (targetError) throw targetError;
+    if (!target) throw new AppError(404, "Không tìm thấy tài khoản.", "NOT_FOUND");
+    if (target.role === role) {
+      res.json({ userId, role: target.role });
+      return;
+    }
+    if (target.role === "admin" && role === "student") {
+      const { count, error: countError } = await supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "admin");
+      if (countError) throw countError;
+      if ((count ?? 0) <= 1) {
+        throw new AppError(400, "Không thể hạ quyền admin cuối cùng của hệ thống.", "LAST_ADMIN");
+      }
+    }
+    const { error: updateError } = await supabase.from("profiles").update({ role, updated_at: new Date().toISOString() }).eq("id", userId);
+    if (updateError) throw updateError;
+    await supabase.from("audit_logs").insert({
+      actor_id: identity.bootstrap ? null : identity.id,
+      action: "user.role_changed",
+      entity_type: "profile",
+      entity_id: userId,
+      details: { from: target.role, to: role, target_name: target.full_name },
+    });
+    res.json({ userId, role });
+  }));
+
   router.post("/subjects", validateBody(subjectSchema), asyncHandler(async (req, res) => {
     const identity = admin(req);
     const { schoolCode, code, name, description } = req.body as z.infer<typeof subjectSchema>;

@@ -29,9 +29,19 @@ OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 OPENAI_QUESTION_MODEL=gpt-5.6-luna
 ```
 
-`ADMIN_BOOTSTRAP_TOKEN` là tùy chọn dùng một lần để mở trang `/admin` trước khi
-có tài khoản admin. Đặt chuỗi ngẫu nhiên dài, tạo/cấp quyền admin, sau đó xóa
-biến này khỏi production.
+Khởi tạo admin đầu tiên là tùy chọn: áp dụng migration
+`supabase/migrations/202610100001_admin_bootstrap.sql`, đặt
+`ADMIN_BOOTSTRAP_TOKEN` thành chuỗi ngẫu nhiên 32–512 ký tự và
+`ADMIN_BOOTSTRAP_EXPIRES_AT` thành thời điểm hết hạn ISO có timezone (đuôi `Z`
+hoặc `+07:00`). Chọn hạn ngắn, ví dụ 15 phút kể từ lúc cấu hình.
+Đăng nhập tài khoản Supabase cần cấp quyền, mở `/admin`, chọn **Khởi tạo tài
+khoản admin đầu tiên**, rồi nhập mã. API `POST /Admin/bootstrap` yêu cầu cả
+session Supabase và mã trong body; mã không thay thế Bearer JWT và không mở
+các API quản trị khác. RPC cấp quyền và khóa khởi tạo trong cùng giao dịch;
+chỉ một tài khoản được cấp dù gửi đồng thời nhiều request. Trạng thái đã dùng
+được giữ trong database, kể cả khi tài khoản đó bị xóa/hạ quyền hoặc BE restart.
+Migration cũng khóa bootstrap nếu hệ thống đã có admin. Sau khi hoàn tất,
+xóa hai biến bootstrap khỏi production. Có thể dùng SQL ở mục 2 thay cho luồng này.
 
 Embedding mặc định có 1536 chiều. Nếu đổi model hoặc số chiều, cập nhật
 `MONGODB_VECTOR_DIMENSIONS`, tạo lại Vector Search index và lập chỉ mục lại toàn
@@ -43,6 +53,7 @@ Chạy migration bằng Supabase CLI hoặc SQL Editor:
 
 ```text
 supabase/migrations/202608310001_examcure_ai.sql
+supabase/migrations/202610100001_admin_bootstrap.sql
 ```
 
 Migration tạo schema, RLS, private Storage buckets, RPC nhận job (chỉ dùng cho

@@ -6,6 +6,7 @@ import type { AppDatabase } from "./db/database.js";
 
 const config = loadConfig({
   NODE_ENV: "test",
+  ENABLE_LEGACY_AUTH: "true",
   DATABASE_PATH: ":memory:",
   JWT_SECRET: "test-secret-that-is-at-least-thirty-two-characters",
   DEV_EXPOSE_OTP: "true"
@@ -27,6 +28,9 @@ function setup(appConfig: AppConfig = config) {
 }
 
 describe("ExamCure API", () => {
+  it("defaults to Supabase authentication in development too", () => {
+    expect(loadConfig({ NODE_ENV: "development" }).ENABLE_LEGACY_AUTH).toBe(false);
+  });
   it("allows Supabase-only production without legacy JWT or SMTP configuration", () => {
     const production = loadConfig({
       NODE_ENV: "production",

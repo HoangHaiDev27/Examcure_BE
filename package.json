@@ -15,6 +15,7 @@
     "test": "vitest run src",
     "test:watch": "vitest src",
     "test:materials": "node --test tests/material-pipeline.test.mjs",
+    "test:admin-bootstrap": "node --test tests/admin-bootstrap-migration.test.mjs",
     "worker:materials": "node --env-file-if-exists=.env scripts/process-materials.mjs --watch",
     "worker:materials:once": "node --env-file-if-exists=.env scripts/process-materials.mjs --once",
     "setup:mongodb-vector": "node --env-file-if-exists=.env scripts/setup-mongodb-vector-index.mjs"

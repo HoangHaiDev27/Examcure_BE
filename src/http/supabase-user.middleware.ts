@@ -24,7 +24,7 @@ export async function requireSupabaseUser(
   try {
     const [scheme, token] = req.header("authorization")?.split(" ") ?? [];
     if (scheme !== "Bearer" || !token) {
-      throw new AppError(401, "Bạn cần đăng nhập để xem tài liệu.", "AUTH_REQUIRED");
+      throw new AppError(401, "Bạn cần đăng nhập để tiếp tục.", "AUTH_REQUIRED");
     }
     const { data, error } = await getSupabaseAdmin().auth.getUser(token);
     if (error || !data.user) throw new AppError(401, "Phiên đăng nhập không hợp lệ.", "AUTH_REQUIRED");
