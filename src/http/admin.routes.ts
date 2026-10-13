@@ -7,6 +7,8 @@ import type { FileStorage } from "../integrations/storage.js";
 import type { TokenService } from "../services/token.service.js";
 import { generateQuestions } from "../integrations/openai.js";
 import { retrieveMaterialChunks } from "../integrations/vector-search.js";
+import { isOpenAIConfigured } from "../integrations/env.js";
+import { requestExamGeneration } from "../services/exam-generation.service.js";
 import { AppError } from "../lib/errors.js";
 import { ingestPptxMaterialVersion } from "../services/pptx-ingestion.service.js";
 import { requireAuth, requireAdmin } from "./auth.middleware.js";
@@ -52,6 +54,33 @@ export function createAdminRouter(
   router.use(requireAuth(tokens, db), requireAdmin);
   router.get("/overview", async (req, res) =>
     res.json({ admin: req.adminIdentity, ...(await repo.overview()) }),
+  );
+  const examGenerationSchema = z.object({
+    subjectId: uuid,
+    title: z.string().trim().min(1).max(200),
+    durationMinutes: z.number().int().min(1).max(300),
+    questionCount: z.number().int().min(1).max(50),
+    difficulty: z.enum(["basic", "medium", "advanced"]),
+    extraInstructions: z.string().trim().max(1000).optional(),
+    materialVersionIds: z.array(uuid).max(20).optional(),
+  });
+  router.post(
+    "/exams/generate",
+    validateBody(examGenerationSchema),
+    async (req, res) => {
+      if (!isOpenAIConfigured())
+        throw new AppError(
+          503,
+          "OpenAI chưa được cấu hình nên chưa tạo được đề bằng AI.",
+          "AI_UNAVAILABLE",
+        );
+      res
+        .status(202)
+        .json(await requestExamGeneration(db, req.userId!, req.body));
+    },
+  );
+  router.get("/exams/:examId", async (req, res) =>
+    res.json(await repo.examDetail(uuid.parse(req.params.examId))),
   );
   router.get("/users", async (_req, res) => {
     const rows = await db.find("users", {}, { created_at: -1 });

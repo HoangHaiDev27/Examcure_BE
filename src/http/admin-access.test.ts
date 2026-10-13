@@ -327,10 +327,7 @@ describe("own database and private file storage", () => {
       });
     expect(generated.status).toBe(201);
     expect(generated.body.savedCount).toBe(1);
-    const overview = await request(built.app)
-      .get("/api/v1/Admin/overview")
-      .auth(admin.token, { type: "bearer" });
-    const question = overview.body.questions[0];
+    const question = (await built.db.find("questions"))[0]!;
     expect(
       question.question_options.filter((o: any) => o.is_correct),
     ).toHaveLength(1);

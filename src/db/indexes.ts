@@ -36,8 +36,13 @@ const indexes: Record<string, IndexDescription[]> = {
   questions: [
     { key: { subject_id: 1, status: 1 } },
     { key: { created_at: -1 } },
+    { key: { exam_id: 1 } },
   ],
-  exams: [{ key: { subject_id: 1, status: 1 } }, { key: { created_at: -1 } }],
+  exams: [
+    { key: { subject_id: 1, status: 1 } },
+    { key: { created_at: -1 } },
+    { key: { "exam_questions.question_id": 1 } },
+  ],
   attempts: [
     { key: { user_id: 1, submitted_at: -1 } },
     { key: { user_id: 1, subject_id: 1, submitted_at: -1 } },

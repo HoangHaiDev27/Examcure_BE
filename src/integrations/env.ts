@@ -19,18 +19,24 @@ function commandAvailable(name: string, fallback: string, args: string[]): boole
   return !result.error;
 }
 
+function configured(name: string): boolean {
+  const value = process.env[name]?.trim();
+  return Boolean(value && !value.includes("YOUR_") && !value.includes("USER:PASSWORD"));
+}
+
+export function isOpenAIConfigured(): boolean {
+  return (
+    configured("OPENAI_API_KEY") &&
+    configured("OPENAI_EMBEDDING_MODEL") &&
+    configured("OPENAI_QUESTION_MODEL")
+  );
+}
+
 export function integrationStatus() {
-  const configured = (name: string) => {
-    const value = process.env[name]?.trim();
-    return Boolean(value && !value.includes("YOUR_") && !value.includes("USER:PASSWORD"));
-  };
   return {
 
     mongodb: configured("MONGODB_URI"),
-    openai:
-      configured("OPENAI_API_KEY") &&
-      configured("OPENAI_EMBEDDING_MODEL") &&
-      configured("OPENAI_QUESTION_MODEL"),
+    openai: isOpenAIConfigured(),
     converter:
       commandAvailable("LIBREOFFICE_BIN", "soffice", ["--version"]) &&
       commandAvailable("PDFTOPPM_BIN", "pdftoppm", ["-v"]) &&

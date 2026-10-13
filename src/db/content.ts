@@ -154,26 +154,144 @@ export class ContentRepository {
         }
       : null;
   }
+  async expireStaleGenerations() {
+    const cutoff = new Date(Date.now() - 15 * 60000).toISOString();
+    await this.db.updateMany(
+      "exams",
+      { status: "generating", created_at: { $lt: cutoff } },
+      {
+        $set: {
+          status: "failed",
+          error_message:
+            "Quá thời gian soạn đề. Máy chủ có thể đã khởi động lại, hãy xoá đề và tạo lại.",
+          updated_at: now(),
+        },
+      },
+    );
+  }
+  private async examSummaries(exams: DataRow[]) {
+    const ids = [
+      ...new Set(
+        exams.flatMap((e) =>
+          (e.exam_questions ?? []).map((l: DataRow) => l.question_id as string),
+        ),
+      ),
+    ];
+    const questions = ids.length
+      ? await this.db.find("questions", { id: { $in: ids } })
+      : [];
+    const status = new Map(questions.map((q) => [q.id as string, q.status]));
+    return exams.map((e) => {
+      const links: DataRow[] = e.exam_questions ?? [];
+      const statuses = links.flatMap((l) => {
+        const st = status.get(l.question_id);
+        return st === undefined ? [] : [st];
+      });
+      return {
+        id: e.id,
+        subject_id: e.subject_id,
+        title: e.title,
+        status: e.status,
+        source: e.source ?? "materials",
+        difficulty: e.difficulty ?? null,
+        duration_minutes: e.duration_minutes,
+        requested_count: e.requested_count ?? links.length,
+        question_count: statuses.filter((st) => st !== "rejected").length,
+        checked_count: statuses.filter((st) => st === "approved").length,
+        error_message: e.error_message ?? null,
+        created_at: e.created_at,
+        published_at: e.published_at ?? null,
+      };
+    });
+  }
   async overview() {
-    const [subjects, materials, versions, generationRuns, questions, exams] =
-      await Promise.all([
-        this.db.find("subjects", {}, { code: 1 }),
-        this.db.find("materials", {}, { created_at: -1 }),
-        this.db.find("material_versions", {}, { version_number: -1 }),
-        this.db.find("generation_runs", {}, { created_at: -1 }, 20),
-        this.db.find("questions", {}, { created_at: -1 }, 100),
-        this.db.find("exams", {}, { created_at: -1 }, 30),
-      ]);
+    await this.expireStaleGenerations();
+    const [subjects, materials, versions, exams] = await Promise.all([
+      this.db.find("subjects", {}, { code: 1 }),
+      this.db.find("materials", {}, { created_at: -1 }),
+      this.db.find("material_versions", {}, { version_number: -1 }),
+      this.db.find("exams", {}, { created_at: -1 }),
+    ]);
     return {
       subjects,
       materials: materials.map((m) => ({
         ...m,
         material_versions: versions.filter((v) => v.material_id === m.id),
       })),
-      generationRuns,
-      questions,
-      exams,
+      exams: await this.examSummaries(exams),
     };
+  }
+  async examDetail(examId: string) {
+    await this.expireStaleGenerations();
+    const exam = await this.db.findOne("exams", { id: examId });
+    if (!exam) throw new AppError(404, "Không tìm thấy đề thi.", "NOT_FOUND");
+    const [summary] = await this.examSummaries([exam]);
+    const links = [...(exam.exam_questions ?? [])].sort(
+      (a: DataRow, b: DataRow) => a.position - b.position,
+    );
+    const rows = links.length
+      ? await this.db.find("questions", {
+          id: { $in: links.map((l: DataRow) => l.question_id) },
+        })
+      : [];
+    const byId = new Map(rows.map((q) => [q.id as string, q]));
+    const questions = links.flatMap((l: DataRow) => {
+      const q = byId.get(l.question_id);
+      if (!q || q.status === "rejected") return [];
+      return [
+        {
+          id: q.id,
+          position: l.position,
+          status: q.status,
+          difficulty: q.difficulty,
+          prompt: q.prompt,
+          explanation: q.explanation,
+          options: [...(q.question_options ?? [])]
+            .sort((a: DataRow, b: DataRow) => a.position - b.position)
+            .map((o: DataRow) => ({
+              position: o.position,
+              content: o.content,
+              is_correct: o.is_correct,
+            })),
+          sources: (q.question_sources ?? []).map((s: DataRow) => ({
+            material_version_id: s.material_version_id,
+            slide_number: s.slide_number,
+            excerpt: s.excerpt,
+          })),
+        },
+      ];
+    });
+    const versionIds: string[] = exam.source_version_ids ?? [];
+    const versions = versionIds.length
+      ? await this.db.find("material_versions", { id: { $in: versionIds } })
+      : [];
+    const materials = versions.length
+      ? await this.db.find("materials", {
+          id: { $in: [...new Set(versions.map((v) => v.material_id))] },
+        })
+      : [];
+    const titles = new Map(materials.map((m) => [m.id as string, m.title]));
+    return {
+      exam: {
+        ...summary,
+        extra_instructions: exam.extra_instructions ?? null,
+        source_versions: versions.map((v) => ({
+          id: v.id,
+          material_id: v.material_id,
+          title: titles.get(v.material_id) ?? null,
+          version_number: v.version_number,
+        })),
+      },
+      questions,
+    };
+  }
+  async subjectReadyVersions(subjectId: string) {
+    const materials = await this.db.find("materials", { subject_id: subjectId });
+    if (!materials.length) return [];
+    return this.db.find("material_versions", {
+      material_id: { $in: materials.map((m) => m.id) },
+      status: "ready",
+    });
   }
   async readyVersions(subjectId: string, ids: string[]) {
     const materials = await this.db.find("materials", {
