@@ -265,8 +265,10 @@ export class ContentRepository {
   }
   async setFeedbackStatus(actor: string, id: string, status: "new" | "resolved") {
     await this.db.transaction(async () => {
-      if (!(await this.db.findOne("feedback", { id })))
-        throw new AppError(404, "Không tìm thấy phản hồi.", "NOT_FOUND");
+      const current = await this.db.findOne("feedback", { id });
+      if (!current) throw new AppError(404, "Không tìm thấy phản hồi.", "NOT_FOUND");
+      // Repeating the same change keeps the first resolver and writes no audit entry.
+      if (current.status === status) return;
       const timestamp = now();
       await this.db.update(
         "feedback",

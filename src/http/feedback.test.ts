@@ -134,6 +134,20 @@ describe("admin feedback", () => {
     expect((await adminPatch(admin.token, "/feedback/not-a-uuid", { status: "resolved" })).status).toBe(400);
     expect((await adminPatch(student.token, `/feedback/${id}`, { status: "resolved" })).status).toBe(403);
   });
+  it("is idempotent: resolving twice keeps the first resolver and one audit row", async () => {
+    const first = await identity("admin"),
+      second = await identity("admin"),
+      student = await identity();
+    const id = (await send(student.token, valid)).body.id;
+    expect((await adminPatch(first.token, `/feedback/${id}`, { status: "resolved" })).status).toBe(200);
+    const again = await adminPatch(second.token, `/feedback/${id}`, { status: "resolved" });
+    expect([again.status, again.body]).toEqual([200, { id, status: "resolved" }]);
+    expect((await built.db.findOne("feedback", { id }))!.resolved_by).toBe(first.user.id);
+    expect(await built.db.count("audit_logs", { entity_id: id })).toBe(1);
+    expect((await adminPatch(second.token, `/feedback/${id}`, { status: "new" })).status).toBe(200);
+    expect((await adminPatch(second.token, `/feedback/${id}`, { status: "new" })).status).toBe(200);
+    expect(await built.db.count("audit_logs", { entity_id: id })).toBe(2);
+  });
   it("reports feedbackNewCount in the overview", async () => {
     const admin = await identity("admin"),
       student = await identity();
