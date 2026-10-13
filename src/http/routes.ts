@@ -12,6 +12,7 @@ import type { TokenService } from "../services/token.service.js";
 import { requireAuth } from "./auth.middleware.js";
 import { validateBody } from "./validation.js";
 import { integrationStatus } from "../integrations/env.js";
+import { createFeedbackRouter } from "./feedback.routes.js";
 import { createAdminRouter } from "./admin.routes.js";
 import { createAdminBootstrapRouter } from "./admin-bootstrap.routes.js";
 import { createMaterialsRouter } from "./materials.routes.js";
@@ -62,6 +63,7 @@ export function createApiRouter(
     createAdminBootstrapRouter(tokens, db),
     createAdminRouter(tokens, db, storage, config),
   );
+  router.use("/Feedback", createFeedbackRouter(tokens, db));
   router.use("/Materials", createMaterialsRouter(tokens, db, storage, config));
 
   router.use(createStudentRouter(tokens, db));

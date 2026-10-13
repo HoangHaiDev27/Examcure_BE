@@ -53,6 +53,19 @@ export function createAdminRouter(
   router.get("/overview", async (req, res) =>
     res.json({ admin: req.adminIdentity, ...(await repo.overview()) }),
   );
+  router.get("/feedback", async (req, res) => {
+    const status = z.enum(["new", "resolved"]).optional().parse(req.query.status);
+    res.json({ feedback: await repo.listFeedback(status) });
+  });
+  router.patch(
+    "/feedback/:feedbackId",
+    validateBody(z.object({ status: z.enum(["new", "resolved"]) })),
+    async (req, res) => {
+      const id = uuid.parse(req.params.feedbackId);
+      await repo.setFeedbackStatus(req.userId!, id, req.body.status);
+      res.json({ id, status: req.body.status });
+    },
+  );
   const examGenerationSchema = z.object({
     subjectId: uuid,
     title: z.string().trim().min(1).max(200),

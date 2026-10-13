@@ -54,6 +54,10 @@ const indexes: Record<string, IndexDescription[]> = {
     { key: { exam_id: 1 } },
   ],
   audit_logs: [{ key: { created_at: -1 } }],
+  feedback: [
+    { key: { status: 1, created_at: -1 } },
+    { key: { user_id: 1, created_at: -1 } },
+  ],
 };
 export async function initializeCollections(db: Db): Promise<void> {
   for (const [name, definitions] of Object.entries(indexes))

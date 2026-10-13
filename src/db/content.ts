@@ -12,6 +12,7 @@ const COLLECTIONS = new Set([
   "exams",
   "attempts",
   "audit_logs",
+  "feedback",
 ]);
 const now = () => new Date().toISOString();
 const defaults: Record<string, DataRow> = {
@@ -213,6 +214,7 @@ export class ContentRepository {
       this.db.find("exams", {}, { created_at: -1 }),
     ]);
     return {
+      feedbackNewCount: await this.db.count("feedback", { status: "new" }),
       subjects,
       materials: materials.map((m) => ({
         ...m,
@@ -220,6 +222,66 @@ export class ContentRepository {
       })),
       exams: await this.examSummaries(exams),
     };
+  }
+  async createFeedback(
+    userId: string,
+    input: { category: string; message: string; page?: string | undefined },
+  ): Promise<string> {
+    const timestamp = now();
+    return this.insert("feedback", {
+      user_id: userId,
+      category: input.category,
+      message: input.message,
+      page: input.page ?? null,
+      status: "new",
+      resolved_by: null,
+      resolved_at: null,
+      created_at: timestamp,
+      updated_at: timestamp,
+    });
+  }
+  async listFeedback(status?: "new" | "resolved") {
+    const rows = await this.db.find("feedback", status ? { status } : {}, { created_at: -1 }, 500);
+    const ids = [...new Set(rows.flatMap((r) => [r.user_id, r.resolved_by].filter(Boolean) as string[]))];
+    const users = ids.length ? await this.db.find("users", { id: { $in: ids } }) : [];
+    const byId = new Map(users.map((u) => [u.id as string, u]));
+    return rows.map((r) => {
+      const author = byId.get(r.user_id);
+      const resolver = r.resolved_by ? byId.get(r.resolved_by) : undefined;
+      return {
+        id: r.id,
+        category: r.category,
+        message: r.message,
+        page: r.page ?? null,
+        status: r.status,
+        createdAt: r.created_at,
+        resolvedAt: r.resolved_at ?? null,
+        resolvedBy: resolver ? { id: resolver.id, fullName: resolver.full_name } : null,
+        user: author
+          ? { id: author.id, fullName: author.full_name, email: author.email, mssv: author.mssv, schoolId: author.school_id }
+          : null,
+      };
+    });
+  }
+  async setFeedbackStatus(actor: string, id: string, status: "new" | "resolved") {
+    await this.db.transaction(async () => {
+      if (!(await this.db.findOne("feedback", { id })))
+        throw new AppError(404, "Không tìm thấy phản hồi.", "NOT_FOUND");
+      const timestamp = now();
+      await this.db.update(
+        "feedback",
+        { id },
+        {
+          $set: {
+            status,
+            resolved_by: status === "resolved" ? actor : null,
+            resolved_at: status === "resolved" ? timestamp : null,
+            updated_at: timestamp,
+          },
+        },
+      );
+      await this.audit(actor, status === "resolved" ? "feedback.resolved" : "feedback.reopened", "feedback", id);
+    });
   }
   async examDetail(examId: string) {
     await this.expireStaleGenerations();

@@ -91,6 +91,7 @@ export const openApiDocument = {
     { name: "Auth" },
     { name: "Users" },
     { name: "Admin" },
+    { name: "Feedback" },
     { name: "Subjects" },
     { name: "Exams" },
     { name: "Attempts" },
@@ -815,6 +816,57 @@ export const openApiDocument = {
             },
           }),
           ...errors("400", "401", "404"),
+        },
+      },
+    },
+    "/Feedback": {
+      post: {
+        tags: ["Feedback"],
+        security: [{ bearerAuth: [] }],
+        summary: "Send feedback (10 per 10 minutes per user)",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["category", "message"],
+                properties: {
+                  category: { type: "string", enum: ["bug", "content", "suggestion", "other"] },
+                  message: { type: "string", minLength: 1, maxLength: 2000 },
+                  page: { type: "string", maxLength: 200, description: "Path of the page, starts with /" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "201": ok("Created", { type: "object", properties: { id: { type: "string", format: "uuid" } } }),
+          ...errors("400", "401", "429"),
+        },
+      },
+    },
+    "/Admin/feedback": {
+      get: {
+        tags: ["Admin"],
+        security: [{ bearerAuth: [] }],
+        summary: "List user feedback, newest first (max 500)",
+        parameters: [{ name: "status", in: "query", schema: { type: "string", enum: ["new", "resolved"] } }],
+        responses: {
+          "200": ok("Feedback", { type: "object", properties: { feedback: { type: "array", items: { type: "object" } } } }),
+          ...errors("400", "401", "403"),
+        },
+      },
+    },
+    "/Admin/feedback/{feedbackId}": {
+      patch: {
+        tags: ["Admin"],
+        security: [{ bearerAuth: [] }],
+        summary: "Mark feedback resolved or reopen it",
+        parameters: [pathUuid("feedbackId")],
+        responses: {
+          "200": ok("Updated", { type: "object", properties: { id: { type: "string" }, status: { type: "string" } } }),
+          ...errors("400", "401", "403", "404"),
         },
       },
     },
