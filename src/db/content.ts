@@ -408,6 +408,7 @@ export class ContentRepository {
       examId: r.exam_id,
       examTitle: e.get(r.exam_id)?.title ?? null,
       subjectId: r.subject_id,
+      schoolCode: s.get(r.subject_id)?.school_code ?? r.school_code ?? null,
       subjectCode: s.get(r.subject_id)
         ? (s.get(r.subject_id)!.display_code ?? s.get(r.subject_id)!.code)
         : null,

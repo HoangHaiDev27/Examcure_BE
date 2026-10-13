@@ -113,6 +113,7 @@ describe("Me routes", () => {
     expect(p1.body.attempts.map((a: any) => a.score)).toEqual([4, 3]);
     expect(p1.body.attempts[0]).toMatchObject({
       subjectId: s,
+      schoolCode: "fptu",
       subjectCode: "PRF192",
       subjectName: "Name PRF192",
       correctCount: 1,

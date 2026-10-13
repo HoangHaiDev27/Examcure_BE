@@ -48,6 +48,7 @@ const attemptItem = {
     examId: { type: "string", format: "uuid" },
     examTitle: nullable("string"),
     subjectId: { type: "string", format: "uuid" },
+    schoolCode: nullable("string"),
     subjectCode: nullable("string"),
     subjectName: nullable("string"),
     score: { type: "number" },
