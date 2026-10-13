@@ -17,7 +17,7 @@ vi.mock("../integrations/mongodb.js", () => ({
 vi.mock("../integrations/openai.js", () => ({
   createEmbeddings: async (inputs: string[]) =>
     inputs.map(() => Array(1536).fill(0)),
-  generateQuestionsFromContext: async () => [
+  generateQuestions: async () => [
     {
       prompt: "Which structure is FIFO?",
       explanation: "A queue follows first in first out.",

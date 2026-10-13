@@ -5,7 +5,7 @@ import type { AppDatabase } from "../db/database.js";
 import { ContentRepository } from "../db/content.js";
 import type { FileStorage } from "../integrations/storage.js";
 import type { TokenService } from "../services/token.service.js";
-import { generateQuestionsFromContext } from "../integrations/openai.js";
+import { generateQuestions } from "../integrations/openai.js";
 import { retrieveMaterialChunks } from "../integrations/vector-search.js";
 import { AppError } from "../lib/errors.js";
 import { ingestPptxMaterialVersion } from "../services/pptx-ingestion.service.js";
@@ -261,7 +261,7 @@ export function createAdminRouter(
             },
           },
         );
-        const generated = await generateQuestionsFromContext({
+        const generated = await generateQuestions({
           subjectName: `${subject.code} - ${subject.name}`,
           count: body.questionCount,
           difficulty: body.difficulty,
