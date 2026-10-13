@@ -227,25 +227,216 @@ export class ContentRepository {
     });
     if (!subjects.length) return [];
     const ids = subjects.map((s) => s.id);
-    const [exams, attempts] = await Promise.all([
+    const [exams, lastScores] = await Promise.all([
       this.db.find("exams", { subject_id: { $in: ids }, status: "published" }),
-      this.db.find(
-        "attempts",
-        { user_id: userId, subject_id: { $in: ids } },
-        { submitted_at: -1 },
-      ),
+      this.db.aggregate("attempts", [
+        { $match: { user_id: userId, subject_id: { $in: ids } } },
+        { $sort: { submitted_at: -1 } },
+        { $group: { _id: "$subject_id", score: { $first: "$score" } } },
+      ]),
     ]);
     const published = new Map<string, number>(),
-      last = new Map<string, number>();
+      last = new Map<string, number>(
+        lastScores.map((r) => [r._id as string, r.score as number]),
+      );
     for (const e of exams)
       published.set(e.subject_id, (published.get(e.subject_id) ?? 0) + 1);
-    for (const a of attempts)
-      if (!last.has(a.subject_id)) last.set(a.subject_id, a.score);
     return subjects.map((s) => ({
       ...s,
       published_exam_count: published.get(s.id) ?? 0,
       last_score: last.get(s.id) ?? null,
     }));
+  }
+  /** Exam questions that may be served and graded: approved and still existing. */
+  private async servable(exam: DataRow) {
+    const links = [...(exam.exam_questions ?? [])].sort(
+      (a: DataRow, b: DataRow) => a.position - b.position,
+    );
+    const questions = await this.db.find("questions", {
+      id: { $in: links.map((l: DataRow) => l.question_id) },
+      status: "approved",
+    });
+    const byId = new Map(questions.map((q) => [q.id as string, q]));
+    return links.flatMap((l: DataRow) => {
+      const question = byId.get(l.question_id);
+      return question ? [{ question, points: Number(l.points ?? 1) }] : [];
+    });
+  }
+  private publicSubject(s: DataRow) {
+    return {
+      id: s.id,
+      schoolCode: s.school_code,
+      code: s.display_code ?? s.code,
+      name: s.name,
+    };
+  }
+  private publicOptions(q: DataRow) {
+    return [...(q.question_options ?? [])]
+      .sort((a: DataRow, b: DataRow) => a.position - b.position)
+      .map((o: DataRow) => ({ position: o.position, content: o.content }));
+  }
+  private async publishedExam(examId: string) {
+    const exam = await this.db.findOne("exams", {
+      id: examId,
+      status: "published",
+    });
+    if (!exam) throw new AppError(404, "Không tìm thấy đề thi.", "NOT_FOUND");
+    const subject = await this.db.findOne("subjects", { id: exam.subject_id });
+    if (!subject) throw new AppError(404, "Không tìm thấy đề thi.", "NOT_FOUND");
+    const items = await this.servable(exam);
+    if (!items.length)
+      throw new AppError(409, "Đề thi chưa có câu hỏi.", "EXAM_EMPTY");
+    return { exam, items, subject };
+  }
+  async listSubjectExams(subjectId: string, userId: string) {
+    if (!(await this.db.findOne("subjects", { id: subjectId })))
+      throw new AppError(404, "Không tìm thấy môn học.", "NOT_FOUND");
+    const exams = await this.db.find(
+      "exams",
+      { subject_id: subjectId, status: "published" },
+      { published_at: -1 },
+    );
+    const scores = await this.db.aggregate("attempts", [
+      { $match: { user_id: userId, exam_id: { $in: exams.map((e) => e.id) } } },
+      { $sort: { submitted_at: -1 } },
+      { $group: { _id: "$exam_id", score: { $first: "$score" } } },
+    ]);
+    const last = new Map(scores.map((r) => [r._id as string, r.score]));
+    return Promise.all(
+      exams.map(async (e) => ({
+        id: e.id,
+        title: e.title,
+        durationMinutes: e.duration_minutes,
+        questionCount: (await this.servable(e)).length,
+        publishedAt: e.published_at ?? null,
+        lastScore: last.get(e.id) ?? null,
+      })),
+    );
+  }
+  async getExamForPlay(examId: string) {
+    const { exam, items, subject } = await this.publishedExam(examId);
+    return {
+      id: exam.id,
+      title: exam.title,
+      durationMinutes: exam.duration_minutes,
+      questionCount: items.length,
+      subject: this.publicSubject(subject),
+      questions: items.map(({ question: q }) => ({
+        id: q.id,
+        prompt: q.prompt,
+        options: this.publicOptions(q),
+      })),
+    };
+  }
+  async submitAttempt(
+    userId: string,
+    examId: string,
+    body: {
+      answers: Array<{ questionId: string; selectedPosition: number | null }>;
+      spentSec: number;
+    },
+  ) {
+    return this.db.transaction(async () => {
+      const { exam, items, subject } = await this.publishedExam(examId);
+      const chosen = new Map<string, number | null>(),
+        valid = new Set(items.map((i) => i.question.id as string));
+      for (const a of body.answers) {
+        if (chosen.has(a.questionId))
+          throw new AppError(400, "Câu trả lời bị trùng.", "DUPLICATE_ANSWER");
+        if (!valid.has(a.questionId))
+          throw new AppError(
+            400,
+            "Câu hỏi không thuộc đề thi.",
+            "INVALID_QUESTION",
+          );
+        chosen.set(a.questionId, a.selectedPosition);
+      }
+      let earned = 0,
+        total = 0,
+        correct = 0;
+      const answers = items.map(({ question: q, points }) => {
+        const right = (q.question_options ?? []).find(
+            (o: DataRow) => o.is_correct,
+          ),
+          selected = chosen.get(q.id) ?? null,
+          isCorrect = selected !== null && selected === right?.position;
+        total += points;
+        if (isCorrect) {
+          earned += points;
+          correct++;
+        }
+        return {
+          question_id: q.id,
+          selected_position: selected,
+          correct_position: right?.position ?? null,
+          is_correct: isCorrect,
+          points,
+        };
+      });
+      const score = total > 0 ? Math.round((earned / total) * 100) / 10 : 0;
+      const attemptId = await this.insert("attempts", {
+        user_id: userId,
+        exam_id: exam.id,
+        subject_id: exam.subject_id,
+        school_code: subject.school_code,
+        answers,
+        correct_count: correct,
+        total_count: items.length,
+        score,
+        spent_sec: Math.min(body.spentSec, exam.duration_minutes * 60 + 60),
+        submitted_at: now(),
+      });
+      return {
+        attemptId,
+        score,
+        correctCount: correct,
+        totalCount: items.length,
+      };
+    });
+  }
+  async getAttempt(userId: string, attemptId: string) {
+    const attempt = await this.db.findOne("attempts", {
+      id: attemptId,
+      user_id: userId,
+    });
+    if (!attempt)
+      throw new AppError(404, "Không tìm thấy bài làm.", "NOT_FOUND");
+    const [exam, subject, questions] = await Promise.all([
+      this.db.findOne("exams", { id: attempt.exam_id }),
+      this.db.findOne("subjects", { id: attempt.subject_id }),
+      this.db.find("questions", {
+        id: { $in: attempt.answers.map((a: DataRow) => a.question_id) },
+      }),
+    ]);
+    const byId = new Map(questions.map((q) => [q.id as string, q]));
+    return {
+      id: attempt.id,
+      score: attempt.score,
+      correctCount: attempt.correct_count,
+      totalCount: attempt.total_count,
+      spentSec: attempt.spent_sec,
+      submittedAt: attempt.submitted_at,
+      exam: {
+        id: attempt.exam_id,
+        title: exam?.title ?? null,
+        durationMinutes: exam?.duration_minutes ?? null,
+      },
+      subject: subject
+        ? this.publicSubject(subject)
+        : { id: attempt.subject_id, schoolCode: attempt.school_code },
+      questions: attempt.answers.map((a: DataRow) => {
+        const q = byId.get(a.question_id);
+        return {
+          id: a.question_id,
+          prompt: q?.prompt ?? null,
+          options: q ? this.publicOptions(q) : [],
+          selectedPosition: a.selected_position,
+          correctPosition: a.correct_position,
+          isCorrect: a.is_correct,
+          explanation: q?.explanation ?? null,
+        };
+      }),
+    };
   }
   async changeRole(actor: string, userId: string, role: string) {
     return this.db.transaction(async () => {

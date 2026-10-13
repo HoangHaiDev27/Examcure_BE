@@ -102,6 +102,12 @@ export class AppDatabase {
       projection: { _id: 0 },
     });
   }
+  async aggregate(name: string, pipeline: DataRow[]): Promise<DataRow[]> {
+    await this.ready;
+    return this.collection(name)
+      .aggregate(pipeline, this.options())
+      .toArray();
+  }
   async count(name: string, filter: Filter<AppDocument> = {}) {
     await this.ready;
     return this.collection(name).countDocuments(filter, this.options());

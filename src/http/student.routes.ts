@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { AppDatabase } from "../db/database.js";
 import { ContentRepository } from "../db/content.js";
 import type { TokenService } from "../services/token.service.js";
+import { rateLimit } from "express-rate-limit";
 import { requireAuth } from "./auth.middleware.js";
 
 export function createStudentRouter(
@@ -62,6 +63,62 @@ export function createStudentRouter(
         publishedExamCount: s.published_exam_count,
         lastScore: s.last_score,
       })),
+    });
+  });
+  const uuid = z.string().uuid();
+  router.get("/Subjects/:subjectId/exams", authenticated, async (req, res) => {
+    res.json({
+      exams: await repo.listSubjectExams(
+        uuid.parse(req.params.subjectId),
+        req.userId!,
+      ),
+    });
+  });
+  router.get("/Exams/:examId", authenticated, async (req, res) => {
+    res.json({
+      exam: await repo.getExamForPlay(uuid.parse(req.params.examId)),
+    });
+  });
+  router.post(
+    "/Exams/:examId/attempts",
+    rateLimit({
+      windowMs: 60_000,
+      limit: 30,
+      standardHeaders: "draft-8",
+      legacyHeaders: false,
+    }),
+    authenticated,
+    async (req, res) => {
+      const body = z
+        .object({
+          answers: z
+            .array(
+              z.object({
+                questionId: z.string().uuid(),
+                selectedPosition: z.number().int().min(0).max(3).nullable(),
+              }),
+            )
+            .max(200),
+          spentSec: z.number().int().min(0).max(86400),
+        })
+        .parse(req.body);
+      res
+        .status(201)
+        .json(
+          await repo.submitAttempt(
+            req.userId!,
+            uuid.parse(req.params.examId),
+            body,
+          ),
+        );
+    },
+  );
+  router.get("/Attempts/:attemptId", authenticated, async (req, res) => {
+    res.json({
+      attempt: await repo.getAttempt(
+        req.userId!,
+        uuid.parse(req.params.attemptId),
+      ),
     });
   });
   return router;
