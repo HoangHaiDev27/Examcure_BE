@@ -1,0 +1,15 @@
+services:
+  mongodb:
+    image: mongo:8.0
+    command: ["mongod", "--replSet", "examcure-rs", "--bind_ip_all"]
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - examcure_mongodb:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "try { rs.status() } catch(e) { rs.initiate({_id:'examcure-rs',members:[{_id:0,host:'127.0.0.1:27017'}]}) }; if(!db.hello().isWritablePrimary) quit(1)"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+volumes:
+  examcure_mongodb:

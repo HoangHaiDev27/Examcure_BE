@@ -1,98 +1,120 @@
-import { Router, type RequestHandler } from "express";
+import { Router } from "express";
 import { z } from "zod";
-import { getSupabaseAdmin } from "../integrations/supabase.js";
+import type { AppConfig } from "../config.js";
+import type { AppDatabase } from "../db/database.js";
+import { ContentRepository } from "../db/content.js";
+import type { FileStorage } from "../integrations/storage.js";
+import type { TokenService } from "../services/token.service.js";
 import { AppError } from "../lib/errors.js";
-import { requireSupabaseUser } from "./supabase-user.middleware.js";
-
+import { requireAuth } from "./auth.middleware.js";
 const uuid = z.string().uuid();
-const subjectQuery = z.object({
-  schoolCode: z.string().trim().min(1).max(50),
-  subjectCode: z.string().trim().min(1).max(50),
-});
-const asyncHandler = (handler: RequestHandler): RequestHandler => (req, res, next) => {
-  Promise.resolve(handler(req, res, next)).catch(next);
-};
-
-type SubjectRelation = { school_code: string; code: string } | Array<{ school_code: string; code: string }>;
-type MaterialRelation = { title: string; subjects: SubjectRelation } | Array<{ title: string; subjects: SubjectRelation }>;
-const one = <T,>(value: T | T[] | null): T | null => Array.isArray(value) ? value[0] || null : value;
-
-/** Read-only student endpoints. Files stay private; only the API signs downloads. */
-export function createMaterialsRouter(): Router {
-  const router = Router();
-  router.use(requireSupabaseUser);
-
-  router.get("/", asyncHandler(async (req, res) => {
-    const { schoolCode, subjectCode } = subjectQuery.parse(req.query);
-    const { data, error } = await getSupabaseAdmin()
-      .from("materials")
-      .select("id, title, description, created_at, subjects!inner(school_code, code), material_versions!inner(id, version_number, original_filename, size_bytes, slide_count, processed_at)")
-      .eq("subjects.school_code", schoolCode.toLowerCase())
-      .eq("subjects.code", subjectCode.toUpperCase())
-      .eq("material_versions.status", "ready")
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    const materials = (data || []).flatMap((material) => {
-      const versions = (material.material_versions || []) as Array<{
-        id: string; version_number: number; original_filename: string; size_bytes: number; slide_count: number; processed_at: string | null;
-      }>;
-      return versions.map((version) => ({
-        id: material.id,
-        title: material.title,
-        description: material.description,
-        createdAt: material.created_at,
-        version,
-      }));
-    });
-    res.json({ materials });
-  }));
-
-  router.get("/:versionId/slides", asyncHandler(async (req, res) => {
-    const versionId = uuid.parse(req.params.versionId);
-    const { data, error } = await getSupabaseAdmin()
-      .from("material_versions")
-      .select("id, version_number, original_filename, size_bytes, slide_count, processed_at, status, materials!inner(title, subjects!inner(school_code, code))")
-      .eq("id", versionId)
-      .eq("status", "ready")
-      .single();
-    if (error || !data) throw new AppError(404, "Không tìm thấy giáo trình đã sẵn sàng.", "NOT_FOUND");
-    const { data: slides, error: slidesError } = await getSupabaseAdmin()
-      .from("slides")
-      .select("slide_number, text_content, notes")
-      .eq("material_version_id", versionId)
-      .order("slide_number");
-    if (slidesError) throw slidesError;
-    const material = one((data as unknown as { materials: MaterialRelation }).materials);
-    const subject = one(material?.subjects || null);
+export function createMaterialsRouter(
+  tokens: TokenService,
+  db: AppDatabase,
+  storage: FileStorage,
+  config: AppConfig,
+): Router {
+  const router = Router(),
+    repo = new ContentRepository(db);
+  // Signed links are limited to the original file, never a general bearer token.
+  router.get("/:versionId/file", async (req, res) => {
+    res
+      .set("Cache-Control", "private, no-store")
+      .set("Referrer-Policy", "no-referrer");
+    const id = uuid.parse(req.params.versionId);
+    await tokens.verifyDownload(
+      typeof req.query.token === "string" ? req.query.token : "",
+      id,
+    );
+    const v = await repo.version(id);
+    if (!v || v.status !== "ready")
+      throw new AppError(404, "Không tìm thấy tài liệu.", "NOT_FOUND");
+    res
+      .attachment(v.original_filename)
+      .type(v.mime_type)
+      .send(await storage.get(v.original_path));
+  });
+  router.use(requireAuth(tokens, db));
+  router.get("/", async (req, res) => {
+    const body = z
+      .object({
+        schoolCode: z.string().trim().min(1).max(50),
+        subjectCode: z.string().trim().min(1).max(50),
+      })
+      .parse(req.query);
+    const rows = await repo.listMaterials(body.schoolCode, body.subjectCode);
     res.json({
-      material: { title: material?.title || data.original_filename, schoolCode: subject?.school_code, subjectCode: subject?.code },
-      version: {
-        id: data.id,
-        versionNumber: data.version_number,
-        originalFilename: data.original_filename,
-        sizeBytes: data.size_bytes,
-        slideCount: data.slide_count,
-        processedAt: data.processed_at,
-      },
-      slides: slides || [],
+      materials: rows.map((v) => ({
+        id: v.mid,
+        title: v.title,
+        description: v.description,
+        createdAt: v.mcreated,
+        version: {
+          id: v.id,
+          version_number: v.version_number,
+          original_filename: v.original_filename,
+          size_bytes: v.size_bytes,
+          slide_count: v.slide_count,
+          processed_at: v.processed_at,
+        },
+      })),
     });
-  }));
-
-  router.get("/:versionId/download", asyncHandler(async (req, res) => {
-    const versionId = uuid.parse(req.params.versionId);
-    const { data: version, error } = await getSupabaseAdmin()
-      .from("material_versions")
-      .select("original_bucket, original_path, original_filename")
-      .eq("id", versionId)
-      .eq("status", "ready")
-      .single();
-    if (error || !version) throw new AppError(404, "Không tìm thấy giáo trình đã sẵn sàng.", "NOT_FOUND");
-    const { data: signed, error: signedError } = await getSupabaseAdmin().storage
-      .from(version.original_bucket)
-      .createSignedUrl(version.original_path, 60);
-    if (signedError || !signed?.signedUrl) throw signedError || new Error("Không thể tạo link tải tài liệu");
-    res.json({ url: signed.signedUrl, filename: version.original_filename, expiresInSeconds: 60 });
-  }));
-
+  });
+  router.get("/:versionId/slides", async (req, res) => {
+    const id = uuid.parse(req.params.versionId),
+      v = await repo.version(id);
+    if (!v || v.status !== "ready")
+      throw new AppError(
+        404,
+        "Không tìm thấy giáo trình đã sẵn sàng.",
+        "NOT_FOUND",
+      );
+    res.json({
+      material: {
+        title: v.title,
+        schoolCode: v.school_code,
+        subjectCode: v.subject_code,
+      },
+      version: {
+        id: v.id,
+        versionNumber: v.version_number,
+        originalFilename: v.original_filename,
+        sizeBytes: v.size_bytes,
+        slideCount: v.slide_count,
+        processedAt: v.processed_at,
+      },
+      slides: (
+        await db.find(
+          "slides",
+          { material_version_id: id },
+          { slide_number: 1 },
+        )
+      ).map((s) => ({
+        slide_number: s.slide_number,
+        text_content: s.text_content,
+        notes: s.notes,
+      })),
+    });
+  });
+  router.get("/:versionId/download", async (req, res) => {
+    const id = uuid.parse(req.params.versionId),
+      v = await repo.version(id);
+    if (!v || v.status !== "ready")
+      throw new AppError(
+        404,
+        "Không tìm thấy giáo trình đã sẵn sàng.",
+        "NOT_FOUND",
+      );
+    const token = await tokens.signDownload(
+      id,
+      req.userId!,
+      req.header("authorization")!.slice(7),
+    );
+    res.set("Cache-Control", "no-store").json({
+      url: `${config.API_PUBLIC_URL.replace(/\/$/, "")}/Materials/${id}/file?token=${encodeURIComponent(token)}`,
+      filename: v.original_filename,
+      expiresInSeconds: 60,
+    });
+  });
   return router;
 }

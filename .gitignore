@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .env
-data/*.sqlite*
+data/
+private-export/
 coverage/
 *.log

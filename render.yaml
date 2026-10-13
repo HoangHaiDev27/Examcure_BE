@@ -1,4 +1,5 @@
 # yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+# Supply MongoDB replica set/Atlas and private S3 storage credentials.
 services:
   - type: web
     name: examcure-be
@@ -10,20 +11,46 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: ENABLE_LEGACY_AUTH
-        value: "false"
       - key: DEV_EXPOSE_OTP
         value: "false"
+      - key: TRUST_PROXY_HOPS
+        value: "1"
+      - key: COOKIE_SAME_SITE
+        value: lax
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGIN
         sync: false
-      - key: SUPABASE_URL
+      - key: API_PUBLIC_URL
         sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
+      - key: STORAGE_DRIVER
+        value: s3
+      - key: S3_ENDPOINT
         sync: false
+      - key: S3_REGION
+        value: us-east-1
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_FORCE_PATH_STYLE
+        value: "false"
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: MATERIAL_PROCESSING_MODE
+        value: inline
       - key: MONGODB_URI
         sync: false
+      - key: MONGODB_DATABASE
+        value: examcure
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_EMBEDDING_MODEL
@@ -33,33 +60,39 @@ services:
       - key: MONGODB_VECTOR_DIMENSIONS
         value: "1536"
 
-  # Background workers do not have a free Render plan. This worker needs
-  # LibreOffice and Poppler, which are installed by Dockerfile.worker.
+  # Optional paid conversion worker; remove this entry for inline PPTX text.
+  # Set MATERIAL_PROCESSING_MODE=worker on the API to enqueue conversion jobs.
   - type: worker
     name: examcure-material-worker
     runtime: docker
     plan: 0.5c-512mb
     dockerfilePath: ./Dockerfile.worker
     envVars:
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      - key: MONGODB_URI
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: OPENAI_EMBEDDING_MODEL
-        value: text-embedding-3-small
-      - key: OPENAI_QUESTION_MODEL
-        value: gpt-5.6-luna
-      - key: MONGODB_DATABASE
-        value: examcure
-      - key: MONGODB_VECTOR_COLLECTION
-        value: material_chunks
-      - key: MONGODB_VECTOR_INDEX
-        value: material_vector_index
-      - key: MONGODB_VECTOR_DIMENSIONS
-        value: "1536"
+      - key: NODE_ENV
+        value: production
+      - key: STORAGE_DRIVER
+        value: s3
       - key: MATERIAL_WORKER_NAME
         value: render-material-worker
+      - key: S3_ENDPOINT
+        fromService: { type: web, name: examcure-be, envVarKey: S3_ENDPOINT }
+      - key: S3_REGION
+        fromService: { type: web, name: examcure-be, envVarKey: S3_REGION }
+      - key: S3_BUCKET
+        fromService: { type: web, name: examcure-be, envVarKey: S3_BUCKET }
+      - key: S3_ACCESS_KEY_ID
+        fromService: { type: web, name: examcure-be, envVarKey: S3_ACCESS_KEY_ID }
+      - key: S3_SECRET_ACCESS_KEY
+        fromService: { type: web, name: examcure-be, envVarKey: S3_SECRET_ACCESS_KEY }
+      - key: S3_FORCE_PATH_STYLE
+        fromService: { type: web, name: examcure-be, envVarKey: S3_FORCE_PATH_STYLE }
+      - key: MONGODB_URI
+        fromService: { type: web, name: examcure-be, envVarKey: MONGODB_URI }
+      - key: MONGODB_DATABASE
+        fromService: { type: web, name: examcure-be, envVarKey: MONGODB_DATABASE }
+      - key: OPENAI_API_KEY
+        fromService: { type: web, name: examcure-be, envVarKey: OPENAI_API_KEY }
+      - key: OPENAI_EMBEDDING_MODEL
+        fromService: { type: web, name: examcure-be, envVarKey: OPENAI_EMBEDDING_MODEL }
+      - key: MONGODB_VECTOR_DIMENSIONS
+        fromService: { type: web, name: examcure-be, envVarKey: MONGODB_VECTOR_DIMENSIONS }

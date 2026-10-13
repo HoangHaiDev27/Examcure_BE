@@ -1,24 +1,17 @@
-import { randomUUID } from "node:crypto";
-import { Router, type RequestHandler } from "express";
+import { Router, raw } from "express";
 import { z } from "zod";
+import type { AppConfig } from "../config.js";
+import type { AppDatabase } from "../db/database.js";
+import { ContentRepository } from "../db/content.js";
+import type { FileStorage } from "../integrations/storage.js";
+import type { TokenService } from "../services/token.service.js";
 import { generateQuestionsFromContext } from "../integrations/openai.js";
-import { getStorageBuckets, getSupabaseAdmin } from "../integrations/supabase.js";
 import { retrieveMaterialChunks } from "../integrations/vector-search.js";
 import { AppError } from "../lib/errors.js";
 import { ingestPptxMaterialVersion } from "../services/pptx-ingestion.service.js";
-import { requireSupabaseAdmin } from "./supabase-admin.middleware.js";
+import { requireAuth, requireAdmin } from "./auth.middleware.js";
 import { validateBody } from "./validation.js";
-
-type Difficulty = "basic" | "medium" | "advanced";
 const uuid = z.string().uuid();
-const asyncHandler = (handler: RequestHandler): RequestHandler => (req, res, next) => {
-  Promise.resolve(handler(req, res, next)).catch(next);
-};
-const admin = (req: Express.Request) => {
-  if (!req.adminIdentity) throw new AppError(401, "Bạn cần đăng nhập.", "AUTH_REQUIRED");
-  return req.adminIdentity;
-};
-
 const materialSchema = z.object({
   subjectId: uuid,
   materialId: uuid.optional(),
@@ -26,7 +19,11 @@ const materialSchema = z.object({
   description: z.string().trim().max(1000).optional(),
   fileName: z.string().trim().min(1).max(255),
   mimeType: z.string().trim().min(1).max(200),
-  sizeBytes: z.number().int().positive().max(20 * 1024 * 1024),
+  sizeBytes: z
+    .number()
+    .int()
+    .positive()
+    .max(20 * 1024 * 1024),
 });
 const subjectSchema = z.object({
   schoolCode: z.string().trim().min(1).max(50),
@@ -36,185 +33,174 @@ const subjectSchema = z.object({
 });
 
 function safeFileName(name: string): string {
-  return name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(-120);
+  return name
+    .normalize("NFKD")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(-120);
 }
 
-export function createAdminRouter(): Router {
-  const router = Router();
-  router.use(requireSupabaseAdmin);
-
-  router.get("/overview", asyncHandler(async (req, res) => {
-    const identity = admin(req);
-    const supabase = getSupabaseAdmin();
-    const [subjects, materials, runs, questions, exams] = await Promise.all([
-      supabase.from("subjects").select("id, school_code, code, name").order("code"),
-      supabase.from("materials").select("id, subject_id, title, created_at, material_versions(id, version_number, status, original_filename, slide_count, error_message, created_at)").order("created_at", { ascending: false }),
-      supabase.from("generation_runs").select("id, subject_id, status, question_count, difficulty, error_message, created_at").order("created_at", { ascending: false }).limit(20),
-      supabase.from("questions").select("id, subject_id, prompt, explanation, difficulty, status, created_at, question_options(id, position, content, is_correct), question_sources(id, slide_number, chunk_id, excerpt)").order("created_at", { ascending: false }).limit(100),
-      supabase.from("exams").select("id, subject_id, title, duration_minutes, status, created_at, exam_questions(question_id, position)").order("created_at", { ascending: false }).limit(30),
-    ]);
-    const firstError = [subjects, materials, runs, questions, exams].find((result) => result.error)?.error;
-    if (firstError) throw firstError;
+export function createAdminRouter(
+  tokens: TokenService,
+  db: AppDatabase,
+  storage: FileStorage,
+  config: AppConfig,
+): Router {
+  const router = Router(),
+    repo = new ContentRepository(db);
+  router.use(requireAuth(tokens, db), requireAdmin);
+  router.get("/overview", async (req, res) =>
+    res.json({ admin: req.adminIdentity, ...(await repo.overview()) }),
+  );
+  router.get("/users", async (_req, res) => {
+    const rows = await db.find("users", {}, { created_at: -1 });
     res.json({
-      admin: identity,
-      subjects: subjects.data ?? [],
-      materials: materials.data ?? [],
-      generationRuns: runs.data ?? [],
-      questions: questions.data ?? [],
-      exams: exams.data ?? [],
-    });
-  }));
-
-  router.get("/users", asyncHandler(async (req, res) => {
-    admin(req);
-    const supabase = getSupabaseAdmin();
-    const [{ data: profiles, error: profilesError }, authUsers] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, school_id, role, created_at").order("created_at", { ascending: false }),
-      // Email sống ở auth.users, không có trên profiles — listUsers() cần service-role key (đã dùng ở getSupabaseAdmin()).
-      // perPage giới hạn 200: đủ cho quy mô hiện tại của trường; nếu vượt mốc này cần thêm phân trang thật.
-      supabase.auth.admin.listUsers({ page: 1, perPage: 200 }),
-    ]);
-    if (profilesError) throw profilesError;
-    if (authUsers.error) throw authUsers.error;
-    const emailById = new Map(authUsers.data.users.map((authUser) => [authUser.id, authUser.email ?? null]));
-    res.json({
-      users: (profiles ?? []).map((profile) => ({
-        id: profile.id,
-        email: emailById.get(profile.id) ?? null,
-        fullName: profile.full_name,
-        schoolId: profile.school_id,
-        role: profile.role,
-        createdAt: profile.created_at,
+      users: rows.map((u) => ({
+        id: u.id,
+        email: u.email,
+        fullName: u.full_name,
+        schoolId: u.school_id,
+        role: u.role,
+        createdAt: u.created_at,
       })),
     });
-  }));
-
-  const roleSchema = z.object({ role: z.enum(["student", "admin"]) });
-  router.patch("/users/:userId/role", validateBody(roleSchema), asyncHandler(async (req, res) => {
-    const identity = admin(req);
-    const userId = uuid.parse(req.params.userId);
-    const { role } = req.body as z.infer<typeof roleSchema>;
-    if (userId === identity.id) {
-      throw new AppError(400, "Không thể tự đổi vai trò của chính mình. Nhờ một admin khác thực hiện.", "SELF_ROLE_CHANGE");
-    }
-    const supabase = getSupabaseAdmin();
-    const { data: target, error: targetError } = await supabase.from("profiles").select("id, role, full_name").eq("id", userId).maybeSingle();
-    if (targetError) throw targetError;
-    if (!target) throw new AppError(404, "Không tìm thấy tài khoản.", "NOT_FOUND");
-    if (target.role === role) {
-      res.json({ userId, role: target.role });
+  });
+  router.patch(
+    "/users/:userId/role",
+    validateBody(z.object({ role: z.enum(["student", "admin"]) })),
+    async (req, res) => {
+      const id = uuid.parse(req.params.userId);
+      await repo.changeRole(req.userId!, id, req.body.role);
+      res.json({ userId: id, role: req.body.role });
+    },
+  );
+  router.post("/subjects", validateBody(subjectSchema), async (req, res) =>
+    res
+      .status(201)
+      .json({ subject: await repo.createSubject(req.userId!, req.body) }),
+  );
+  router.post("/materials", validateBody(materialSchema), async (req, res) => {
+    const body = req.body as z.infer<typeof materialSchema>,
+      fileName = safeFileName(body.fileName);
+    if (
+      !fileName.toLowerCase().endsWith(".pptx") ||
+      ![
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/octet-stream",
+      ].includes(body.mimeType)
+    )
+      throw new AppError(
+        400,
+        "Chỉ chấp nhận file .pptx tối đa 20 MB.",
+        "INVALID_FILE",
+      );
+    res
+      .status(201)
+      .json(await repo.createMaterial(req.userId!, { ...body, fileName }));
+  });
+  router.put(
+    "/materials/:versionId/file",
+    raw({ type: () => true, limit: "20mb" }),
+    async (req, res) => {
+      const versionId = uuid.parse(req.params.versionId);
+      await db.transaction(async () => {
+        const version = await repo.version(versionId);
+        if (!version)
+          throw new AppError(404, "Không tìm thấy tài liệu.", "NOT_FOUND");
+        if (version.status !== "uploading")
+          throw new AppError(
+            409,
+            "Phiên bản đã được upload.",
+            "UPLOAD_ALREADY_COMPLETED",
+          );
+        if (
+          !Buffer.isBuffer(req.body) ||
+          req.body.length !== version.size_bytes
+        )
+          throw new AppError(
+            400,
+            "Dung lượng upload không khớp.",
+            "INVALID_FILE_SIZE",
+          );
+        // Reject malformed ZIP/PPTX before allocating expensive ingestion work.
+        if (req.body.length < 4 || req.body.readUInt32LE(0) !== 0x04034b50)
+          throw new AppError(
+            400,
+            "File PowerPoint không hợp lệ.",
+            "INVALID_FILE",
+          );
+        await storage.put(version.original_path, req.body, version.mime_type);
+        await db.update(
+          "material_versions",
+          { id: versionId },
+          { $set: { status: "uploaded", error_message: null } },
+        );
+      });
+      res.json({ versionId, status: "uploaded" });
+    },
+  );
+  router.post("/materials/:versionId/complete-upload", async (req, res) => {
+    const versionId = uuid.parse(req.params.versionId);
+    const claimed = await db.transaction(async () => {
+      const version = await repo.version(versionId);
+      if (!version)
+        throw new AppError(404, "Không tìm thấy tài liệu.", "NOT_FOUND");
+      if (version.status === "ready") return false;
+      if (!["uploaded", "failed"].includes(version.status))
+        throw new AppError(
+          409,
+          "File chưa upload hoặc đang xử lý.",
+          "UPLOAD_INCOMPLETE",
+        );
+      if ((await storage.size(version.original_path)) !== version.size_bytes)
+        throw new AppError(
+          409,
+          "File chưa upload hoàn tất.",
+          "UPLOAD_INCOMPLETE",
+        );
+      await db.update(
+        "material_versions",
+        { id: versionId },
+        { $set: { status: "processing", error_message: null } },
+      );
+      if (config.MATERIAL_PROCESSING_MODE === "worker")
+        await repo.insert("processing_jobs", {
+          job_type: "material_ingestion",
+          payload: { material_version_id: versionId },
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      return true;
+    });
+    if (!claimed) {
+      const version = await repo.version(versionId);
+      res.json({
+        versionId,
+        status: "ready",
+        slideCount: version!.slide_count,
+        chunkCount: 0,
+      });
       return;
     }
-    if (target.role === "admin" && role === "student") {
-      const { count, error: countError } = await supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "admin");
-      if (countError) throw countError;
-      if ((count ?? 0) <= 1) {
-        throw new AppError(400, "Không thể hạ quyền admin cuối cùng của hệ thống.", "LAST_ADMIN");
-      }
+    if (config.MATERIAL_PROCESSING_MODE === "worker") {
+      res.status(202).json({ versionId, status: "processing" });
+      return;
     }
-    const { error: updateError } = await supabase.from("profiles").update({ role, updated_at: new Date().toISOString() }).eq("id", userId);
-    if (updateError) throw updateError;
-    await supabase.from("audit_logs").insert({
-      actor_id: identity.bootstrap ? null : identity.id,
-      action: "user.role_changed",
-      entity_type: "profile",
-      entity_id: userId,
-      details: { from: target.role, to: role, target_name: target.full_name },
-    });
-    res.json({ userId, role });
-  }));
-
-  router.post("/subjects", validateBody(subjectSchema), asyncHandler(async (req, res) => {
-    const identity = admin(req);
-    const { schoolCode, code, name, description } = req.body as z.infer<typeof subjectSchema>;
-    const { data, error } = await getSupabaseAdmin().from("subjects").upsert({
-      school_code: schoolCode.toLowerCase(),
-      code: code.toUpperCase(),
-      name,
-      description: description || null,
-      created_by: identity.bootstrap ? null : identity.id,
-    }, { onConflict: "school_code,code" }).select("id, school_code, code, name").single();
-    if (error) throw error;
-    res.status(201).json({ subject: data });
-  }));
-
-  router.post("/materials", validateBody(materialSchema), asyncHandler(async (req, res) => {
-    const identity = admin(req);
-    const body = req.body as z.infer<typeof materialSchema>;
-    const fileName = safeFileName(body.fileName);
-    const extension = fileName.toLowerCase().split(".").pop();
-    const allowedMime = new Set([
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-      "application/octet-stream",
-    ]);
-    if (!fileName || extension !== "pptx" || !allowedMime.has(body.mimeType)) {
-      throw new AppError(400, "Chỉ chấp nhận file PowerPoint .pptx tối đa 20 MB.", "INVALID_FILE");
-    }
-    const supabase = getSupabaseAdmin();
-    const actorId = identity.bootstrap ? null : identity.id;
-    let materialId = body.materialId;
-    if (materialId) {
-      const { data, error } = await supabase.from("materials").select("id, subject_id").eq("id", materialId).single();
-      if (error || data.subject_id !== body.subjectId) throw new AppError(400, "Tài liệu không thuộc môn học đã chọn.", "INVALID_MATERIAL");
-    } else {
-      const { data, error } = await supabase.from("materials").insert({
-        subject_id: body.subjectId,
-        title: body.title,
-        description: body.description || null,
-        created_by: actorId,
-      }).select("id").single();
-      if (error) throw error;
-      materialId = data.id;
-    }
-    const { data: versions, error: versionError } = await supabase.from("material_versions").select("version_number").eq("material_id", materialId).order("version_number", { ascending: false }).limit(1);
-    if (versionError) throw versionError;
-    const versionId = randomUUID();
-    const versionNumber = (versions?.[0]?.version_number || 0) + 1;
-    const bucket = getStorageBuckets().originals;
-    const path = `${body.subjectId}/${materialId}/${versionId}/${fileName}`;
-    const { error: insertError } = await supabase.from("material_versions").insert({
-      id: versionId,
-      material_id: materialId,
-      version_number: versionNumber,
-      original_bucket: bucket,
-      original_path: path,
-      original_filename: fileName,
-      mime_type: body.mimeType,
-      size_bytes: body.sizeBytes,
-      created_by: actorId,
-    });
-    if (insertError) throw insertError;
-    const { data: signed, error: signedError } = await supabase.storage.from(bucket).createSignedUploadUrl(path, { upsert: false });
-    if (signedError) throw signedError;
-    res.status(201).json({ materialId, versionId, versionNumber, bucket, path, token: signed.token });
-  }));
-
-  router.post("/materials/:versionId/complete-upload", asyncHandler(async (req, res) => {
-    admin(req);
-    const versionId = uuid.parse(req.params.versionId);
-    const supabase = getSupabaseAdmin();
-    const { data: version, error } = await supabase.from("material_versions").select("id, status, original_bucket, original_path").eq("id", versionId).single();
-    if (error || !version) throw new AppError(404, "Không tìm thấy phiên bản tài liệu.", "NOT_FOUND");
-    const pathParts = version.original_path.split("/");
-    const fileName = pathParts.pop() || "";
-    const { data: objects, error: listError } = await supabase.storage.from(version.original_bucket).list(pathParts.join("/"), { search: fileName, limit: 2 });
-    if (listError) throw listError;
-    if (!objects?.some((item) => item.name === fileName)) throw new AppError(409, "File chưa được upload hoàn tất.", "UPLOAD_INCOMPLETE");
-    const { error: updateError } = await supabase.from("material_versions").update({ status: "uploaded", error_message: null }).eq("id", versionId);
-    if (updateError) throw updateError;
     try {
-      const result = await ingestPptxMaterialVersion(versionId);
-      res.json({ versionId, status: "ready", ...result });
-    } catch (processingError) {
+      res.json({
+        versionId,
+        status: "ready",
+        ...(await ingestPptxMaterialVersion(versionId, db, storage)),
+      });
+    } catch (error) {
       throw new AppError(
         422,
-        "Không thể trích xuất nội dung PowerPoint. Kiểm tra trạng thái tài liệu để xem lỗi chi tiết.",
+        "Không thể trích xuất/lập chỉ mục PowerPoint. Xem trạng thái tài liệu để biết lỗi.",
         "PPTX_PROCESSING_FAILED",
-        { reason: processingError instanceof Error ? processingError.message : "Unknown error" },
       );
     }
-  }));
-
+  });
   const generationSchema = z.object({
     subjectId: uuid,
     materialVersionIds: z.array(uuid).min(1).max(20),
@@ -222,104 +208,159 @@ export function createAdminRouter(): Router {
     difficulty: z.enum(["basic", "medium", "advanced"]),
     extraInstructions: z.string().trim().max(1000).optional(),
   });
-  router.post("/question-generation", validateBody(generationSchema), asyncHandler(async (req, res) => {
-    const identity = admin(req);
-    const body = req.body as z.infer<typeof generationSchema>;
-    const versionIds = [...new Set(body.materialVersionIds)];
-    const supabase = getSupabaseAdmin();
-    let runId: string | null = null;
-    try {
-      const { data: subject, error: subjectError } = await supabase.from("subjects").select("id, code, name").eq("id", body.subjectId).single();
-      if (subjectError || !subject) throw new AppError(404, "Không tìm thấy môn học.", "NOT_FOUND");
-      const { data: versions, error: versionsError } = await supabase.from("material_versions").select("id, materials!inner(subject_id)").in("id", versionIds).eq("status", "ready").eq("materials.subject_id", body.subjectId);
-      if (versionsError) throw versionsError;
-      if (versions?.length !== versionIds.length) throw new AppError(400, "Có tài liệu chưa xử lý xong hoặc không thuộc môn đã chọn.", "INVALID_MATERIAL");
-      const { data: run, error: runError } = await supabase.from("generation_runs").insert({
-        subject_id: body.subjectId,
-        requested_by: identity.bootstrap ? null : identity.id,
-        status: "retrieving",
-        question_count: body.questionCount,
-        difficulty: body.difficulty,
-        material_version_ids: versionIds,
-        extra_instructions: body.extraInstructions || null,
-        model: process.env.OPENAI_QUESTION_MODEL,
-      }).select("id").single();
-      if (runError) throw runError;
-      runId = run.id;
-      const chunks = await retrieveMaterialChunks({
-        query: `${subject.code} ${subject.name}. ${body.extraInstructions || "Kiến thức trọng tâm để tạo đề thi"}`,
-        subjectId: body.subjectId,
-        materialVersionIds: versionIds,
-        limit: Math.min(Math.max(body.questionCount * 4, 12), 40),
-      });
-      const fallbackChunk = chunks[0];
-      if (!fallbackChunk || chunks.length < 2) throw new Error("Không tìm thấy đủ nội dung vector để tạo câu hỏi.");
-      await supabase.from("generation_runs").update({ status: "generating", retrieved_chunk_count: chunks.length }).eq("id", runId);
-      const generationInput = {
-        subjectName: `${subject.code} - ${subject.name}`,
-        count: body.questionCount,
-        difficulty: body.difficulty as Difficulty,
-        chunks: chunks.map((chunk) => ({ chunkId: chunk.chunk_id, slideNumber: chunk.slide_number, content: chunk.content })),
-        ...(body.extraInstructions ? { extraInstructions: body.extraInstructions } : {}),
-      };
-      const generated = await generateQuestionsFromContext(generationInput);
-      const chunkById = new Map(chunks.map((chunk) => [chunk.chunk_id, chunk]));
-      const questions = generated.map((question) => {
-        const matched = question.source_chunk_ids.map((id) => chunkById.get(id)).filter((chunk): chunk is typeof fallbackChunk => Boolean(chunk));
-        const sources = matched.length ? matched : [fallbackChunk];
-        return {
-          prompt: question.prompt,
-          explanation: question.explanation,
-          difficulty: question.difficulty,
-          options: question.options.map((content, position) => ({ position, content, is_correct: position === question.correct_index })),
-          sources: sources.map((chunk) => ({ material_version_id: chunk.material_version_id, slide_number: chunk.slide_number, chunk_id: chunk.chunk_id, excerpt: chunk.content.slice(0, 500), retrieval_score: chunk.score })),
-        };
-      });
-      const { data: savedCount, error: saveError } = await supabase.rpc("save_generated_questions", { p_run_id: runId, p_questions: questions });
-      if (saveError) throw saveError;
-      await supabase.from("audit_logs").insert({ actor_id: identity.bootstrap ? null : identity.id, action: "questions.generated", entity_type: "generation_run", entity_id: runId, details: { saved_count: savedCount, material_version_ids: versionIds } });
-      res.status(201).json({ runId, savedCount, status: "completed" });
-    } catch (error) {
-      if (runId) await supabase.from("generation_runs").update({ status: "failed", error_message: error instanceof Error ? error.message.slice(0, 1000) : "Unknown error", completed_at: new Date().toISOString() }).eq("id", runId);
-      throw error;
-    }
-  }));
 
+  router.post(
+    "/question-generation",
+    validateBody(generationSchema),
+    async (req, res) => {
+      const body = req.body as z.infer<typeof generationSchema>,
+        versionIds = [...new Set(body.materialVersionIds)];
+      let runId: string | undefined;
+      try {
+        const subject = await db.findOne("subjects", { id: body.subjectId });
+        if (!subject)
+          throw new AppError(404, "Không tìm thấy môn học.", "NOT_FOUND");
+        const versions = await repo.readyVersions(body.subjectId, versionIds);
+        if (versions.length !== versionIds.length)
+          throw new AppError(
+            400,
+            "Tài liệu chưa sẵn sàng hoặc không thuộc môn đã chọn.",
+            "INVALID_MATERIAL",
+          );
+        runId = await repo.insert("generation_runs", {
+          subject_id: body.subjectId,
+          requested_by: req.userId!,
+          status: "retrieving",
+          question_count: body.questionCount,
+          difficulty: body.difficulty,
+          material_version_ids: versionIds,
+          extra_instructions: body.extraInstructions || null,
+          model: process.env.OPENAI_QUESTION_MODEL || null,
+          created_at: new Date().toISOString(),
+        });
+        const chunks = await retrieveMaterialChunks({
+          query: `${subject.code} ${subject.name}. ${body.extraInstructions || "Kiến thức trọng tâm để tạo đề thi"}`,
+          subjectId: body.subjectId,
+          materialVersionIds: versionIds,
+          limit: Math.min(Math.max(body.questionCount * 4, 12), 40),
+        });
+        const fallback = chunks[0];
+        if (!fallback || chunks.length < 2)
+          throw new AppError(
+            422,
+            "Không tìm thấy đủ nội dung để tạo câu hỏi.",
+            "INSUFFICIENT_CONTEXT",
+          );
+        await db.update(
+          "generation_runs",
+          { id: runId },
+          {
+            $set: {
+              status: "generating",
+              retrieved_chunk_count: chunks.length,
+            },
+          },
+        );
+        const generated = await generateQuestionsFromContext({
+          subjectName: `${subject.code} - ${subject.name}`,
+          count: body.questionCount,
+          difficulty: body.difficulty,
+          chunks: chunks.map((c) => ({
+            chunkId: c.chunk_id,
+            slideNumber: c.slide_number,
+            content: c.content,
+          })),
+          ...(body.extraInstructions
+            ? { extraInstructions: body.extraInstructions }
+            : {}),
+        });
+        const byId = new Map(chunks.map((c) => [c.chunk_id, c]));
+        const questions = generated.map((q) => {
+          const matches = q.source_chunk_ids
+              .map((id) => byId.get(id))
+              .filter((c): c is typeof fallback => Boolean(c)),
+            sources = matches.length ? matches : [fallback];
+          return {
+            prompt: q.prompt,
+            explanation: q.explanation,
+            difficulty: q.difficulty,
+            options: q.options.map((content, position) => ({
+              position,
+              content,
+              is_correct: position === q.correct_index,
+            })),
+            sources: sources.map((c) => ({
+              material_version_id: c.material_version_id,
+              slide_number: c.slide_number,
+              chunk_id: c.chunk_id,
+              excerpt: c.content.slice(0, 500),
+              retrieval_score: c.score,
+            })),
+          };
+        });
+        const savedCount = await repo.saveGenerated(
+          runId,
+          req.userId!,
+          body.subjectId,
+          questions,
+        );
+        res.status(201).json({ runId, savedCount, status: "completed" });
+      } catch (error) {
+        if (runId)
+          await db.update(
+            "generation_runs",
+            { id: runId },
+            {
+              $set: {
+                status: "failed",
+                error_message:
+                  error instanceof Error
+                    ? error.message.slice(0, 1000)
+                    : "Processing failed",
+                completed_at: new Date().toISOString(),
+              },
+            },
+          );
+        throw error;
+      }
+    },
+  );
   const reviewSchema = z.object({
     status: z.enum(["draft", "approved", "rejected"]),
     prompt: z.string().trim().min(1).max(5000).optional(),
     explanation: z.string().trim().min(1).max(5000).optional(),
-    options: z.array(z.object({ position: z.number().int().min(0).max(3), content: z.string().trim().min(1).max(2000), isCorrect: z.boolean() })).length(4).optional(),
+    options: z
+      .array(
+        z.object({
+          position: z.number().int().min(0).max(3),
+          content: z.string().trim().min(1).max(2000),
+          isCorrect: z.boolean(),
+        }),
+      )
+      .length(4)
+      .optional(),
   });
-  router.patch("/questions/:questionId", validateBody(reviewSchema), asyncHandler(async (req, res) => {
-    const identity = admin(req);
-    const questionId = uuid.parse(req.params.questionId);
-    const body = req.body as z.infer<typeof reviewSchema>;
-    if (body.options) {
-      if (new Set(body.options.map((option) => option.position)).size !== 4 || body.options.filter((option) => option.isCorrect).length !== 1) {
-        throw new AppError(400, "Câu hỏi phải có 4 vị trí khác nhau và đúng một đáp án đúng.", "INVALID_OPTIONS");
-      }
-    }
-    const supabase = getSupabaseAdmin();
-    const updates: Record<string, unknown> = {
-      status: body.status,
-      updated_at: new Date().toISOString(),
-      approved_by: body.status === "approved" && !identity.bootstrap ? identity.id : null,
-      approved_at: body.status === "approved" ? new Date().toISOString() : null,
-    };
-    if (body.prompt) updates.prompt = body.prompt;
-    if (body.explanation) updates.explanation = body.explanation;
-    const { data, error } = await supabase.from("questions").update(updates).eq("id", questionId).select("id").maybeSingle();
-    if (error) throw error;
-    if (!data) throw new AppError(404, "Không tìm thấy câu hỏi.", "NOT_FOUND");
-    if (body.options) {
-      const { error: optionError } = await supabase.from("question_options").upsert(body.options.map((option) => ({ question_id: questionId, position: option.position, content: option.content, is_correct: option.isCorrect })), { onConflict: "question_id,position" });
-      if (optionError) throw optionError;
-    }
-    await supabase.from("audit_logs").insert({ actor_id: identity.bootstrap ? null : identity.id, action: `question.${body.status}`, entity_type: "question", entity_id: questionId });
-    res.json({ questionId, status: body.status });
-  }));
 
+  router.patch(
+    "/questions/:questionId",
+    validateBody(reviewSchema),
+    async (req, res) => {
+      const id = uuid.parse(req.params.questionId),
+        body = req.body as z.infer<typeof reviewSchema>;
+      if (
+        body.options &&
+        (new Set(body.options.map((o) => o.position)).size !== 4 ||
+          body.options.filter((o) => o.isCorrect).length !== 1)
+      )
+        throw new AppError(
+          400,
+          "Phải có 4 vị trí khác nhau và một đáp án đúng.",
+          "INVALID_OPTIONS",
+        );
+      await repo.reviewQuestion(req.userId!, id, body);
+      res.json({ questionId: id, status: body.status });
+    },
+  );
   const examSchema = z.object({
     subjectId: uuid,
     title: z.string().trim().min(1).max(200),
@@ -327,27 +368,9 @@ export function createAdminRouter(): Router {
     questionIds: z.array(uuid).min(1).max(200),
     publish: z.boolean().default(false),
   });
-  router.post("/exams", validateBody(examSchema), asyncHandler(async (req, res) => {
-    const identity = admin(req);
-    const body = req.body as z.infer<typeof examSchema>;
-    const questionIds = [...new Set(body.questionIds)];
-    const supabase = getSupabaseAdmin();
-    const { data: questions, error } = await supabase.from("questions").select("id").eq("subject_id", body.subjectId).eq("status", "approved").in("id", questionIds);
-    if (error) throw error;
-    if (questions?.length !== questionIds.length) throw new AppError(400, "Đề chỉ được sử dụng câu hỏi đã được admin duyệt.", "INVALID_QUESTIONS");
-    const { data: examId, error: examError } = await supabase.rpc("create_exam_with_questions", {
-      p_subject_id: body.subjectId,
-      p_title: body.title,
-      p_duration_minutes: body.durationMinutes,
-      p_question_ids: questionIds,
-      p_publish: body.publish,
-      p_created_by: identity.bootstrap ? null : identity.id,
-    });
-    if (examError) throw examError;
-    const status = body.publish ? "published" : "draft";
-    await supabase.from("audit_logs").insert({ actor_id: identity.bootstrap ? null : identity.id, action: body.publish ? "exam.published" : "exam.created", entity_type: "exam", entity_id: examId, details: { question_count: questionIds.length } });
-    res.status(201).json({ examId, status });
-  }));
 
+  router.post("/exams", validateBody(examSchema), async (req, res) =>
+    res.status(201).json(await repo.createExam(req.userId!, req.body)),
+  );
   return router;
 }

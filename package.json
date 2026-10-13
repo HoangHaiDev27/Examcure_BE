@@ -12,16 +12,19 @@
     "build": "tsc -p tsconfig.json",
     "start": "node --env-file-if-exists=.env dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run src",
-    "test:watch": "vitest src",
+    "test": "node scripts/run-mongo-tests.mjs vitest",
+    "test:watch": "node scripts/run-mongo-tests.mjs watch",
     "test:materials": "node --test tests/material-pipeline.test.mjs",
-    "test:admin-bootstrap": "node --test tests/admin-bootstrap-migration.test.mjs",
-    "worker:materials": "node --env-file-if-exists=.env scripts/process-materials.mjs --watch",
-    "worker:materials:once": "node --env-file-if-exists=.env scripts/process-materials.mjs --once",
-    "setup:mongodb-vector": "node --env-file-if-exists=.env scripts/setup-mongodb-vector-index.mjs"
+    "worker:materials": "npm run build && node --env-file-if-exists=.env scripts/process-materials.mjs --watch",
+    "worker:materials:once": "npm run build && node --env-file-if-exists=.env scripts/process-materials.mjs --once",
+    "setup:mongodb-vector": "node --env-file-if-exists=.env scripts/setup-mongodb-vector-index.mjs",
+    "test:database": "npm run build && node scripts/run-mongo-tests.mjs database",
+    "db:import": "npm run build && node --env-file-if-exists=.env scripts/import-legacy-export.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.114.0",
+    "@aws-sdk/client-s3": "^3.1149.0",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
@@ -34,6 +37,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^24.10.1",

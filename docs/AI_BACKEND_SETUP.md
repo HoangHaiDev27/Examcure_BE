@@ -1,226 +1,92 @@
-# Thiết lập backend AI
+# Hạ tầng ExamcureBe
 
-## Kiến trúc
-
-- Supabase Auth và PostgreSQL là nguồn dữ liệu chính cho tài khoản, môn học,
-  tài liệu, slide, câu hỏi, đề thi, trạng thái xử lý và audit log.
-- Supabase Storage giữ PowerPoint gốc. Ở chế độ miễn phí không worker, hệ thống
-  chỉ trích text/note trong `.pptx`; không tạo PDF xem trước hoặc ảnh slide.
-- MongoDB Atlas chỉ giữ chunk văn bản và embedding dẫn xuất. Dữ liệu này có thể
-  được tạo lại từ file và metadata trong Supabase.
-- OpenAI tạo embedding và sinh câu hỏi JSON có cấu trúc.
-- Render Web API xử lý đồng bộ text/note của `.pptx`, tạo embedding và ghi
-  MongoDB ngay sau khi admin upload. Worker Docker chỉ là lựa chọn bổ sung nếu
-  sau này cần PDF/ảnh slide hoặc file `.ppt` cũ.
-
-## 1. Cấu hình môi trường
-
-Sao chép `.env.example` thành `.env`, rồi điền giá trị thật. Không commit `.env`,
-service-role key hoặc OpenAI key.
-
-Các biến chính:
-
-```text
-SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY
-MONGODB_URI
-OPENAI_API_KEY
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-OPENAI_QUESTION_MODEL=gpt-5.6-luna
+```mermaid
+flowchart LR
+  Browser --> Next[Next.js /api/v1 proxy]
+  Next --> API[ExamcureBe]
+  API --> Files[Private S3]
+  API --> SMTP[SMTP OTP]
+  API --> Google[Google OAuth]
+  API --> Mongo[MongoDB app data + vectors]
+  API --> OpenAI
+  Worker[Optional conversion worker] --> Mongo
+  Worker --> Files
+  Worker --> OpenAI
 ```
 
-Khởi tạo admin đầu tiên là tùy chọn: áp dụng migration
-`supabase/migrations/202610100001_admin_bootstrap.sql`, đặt
-`ADMIN_BOOTSTRAP_TOKEN` thành chuỗi ngẫu nhiên 32–512 ký tự và
-`ADMIN_BOOTSTRAP_EXPIRES_AT` thành thời điểm hết hạn ISO có timezone (đuôi `Z`
-hoặc `+07:00`). Chọn hạn ngắn, ví dụ 15 phút kể từ lúc cấu hình.
-Đăng nhập tài khoản Supabase cần cấp quyền, mở `/admin`, chọn **Khởi tạo tài
-khoản admin đầu tiên**, rồi nhập mã. API `POST /Admin/bootstrap` yêu cầu cả
-session Supabase và mã trong body; mã không thay thế Bearer JWT và không mở
-các API quản trị khác. RPC cấp quyền và khóa khởi tạo trong cùng giao dịch;
-chỉ một tài khoản được cấp dù gửi đồng thời nhiều request. Trạng thái đã dùng
-được giữ trong database, kể cả khi tài khoản đó bị xóa/hạ quyền hoặc BE restart.
-Migration cũng khóa bootstrap nếu hệ thống đã có admin. Sau khi hoàn tất,
-xóa hai biến bootstrap khỏi production. Có thể dùng SQL ở mục 2 thay cho luồng này.
+## Production
 
-Embedding mặc định có 1536 chiều. Nếu đổi model hoặc số chiều, cập nhật
-`MONGODB_VECTOR_DIMENSIONS`, tạo lại Vector Search index và lập chỉ mục lại toàn
-bộ tài liệu.
+Điền các biến trong `.env.example` trên môi trường chạy API:
 
-## 2. Khởi tạo Supabase
+- `NODE_ENV=production`, JWT secret ngẫu nhiên bền vững, `DEV_EXPOSE_OTP=false`.
+- `MONGODB_URI=mongodb+srv://...`, `MONGODB_DATABASE=examcure`: MongoDB Atlas hoặc
+  replica set riêng. Giữ TLS và kiểm tra chứng chỉ. API/worker dùng cùng URI và
+  database. API kiểm tra topology khi khởi động, từ chối standalone.
+  Auth, OTP, sessions, quyền admin, môn/tài liệu, jobs, câu hỏi và đề đều lưu MongoDB.
+  Transaction dùng session MongoDB driver xuyên suốt và majority write concern.
+  Document khóa nghiệp vụ ngăn bootstrap/đổi quyền/version cạnh tranh sai.
+- `STORAGE_DRIVER=s3`, bucket private, region, access/secret key. AWS S3 có thể
+  bỏ endpoint; S3 tương thích cần endpoint. MinIO thường cần path style.
+- SMTP host/user/pass/from, port và TLS đúng nhà cung cấp.
+- `CORS_ORIGIN=https://<frontend>`, `API_PUBLIC_URL=https://<frontend>/api/v1`.
+- FE: `NEXT_PUBLIC_API_URL=/api/v1`, `EXAMCURE_API_URL=https://<backend-origin>`.
+  Rebuild FE khi đổi cấu hình. Proxy giữ cookie trên domain FE;
+  `COOKIE_SAME_SITE=lax`. Gọi cross-site trực tiếp cần `none` + HTTPS nhưng
+  có thể bị trình duyệt chặn third-party cookies.
+- Google tùy chọn: client ID/secret và redirect URI
+  `https://<frontend>/api/v1/Auth/google/callback` tại BE và Google Console.
+  Client secret chỉ ở BE.
+- MongoDB/OpenAI dùng các biến trong `.env.example`. Tạo vector index bằng
+  `npm run setup:mongodb-vector`; dimension phải khớp model embedding.
 
-Chạy migration bằng Supabase CLI hoặc SQL Editor:
+`render.yaml` chia sẻ MongoDB/S3 của web service cho worker qua `fromService`.
+Worker là tùy chọn: bỏ entry nếu chỉ cần PPTX text; để chạy worker, đặt
+`MATERIAL_PROCESSING_MODE=worker` ở API. Dockerfile worker build TypeScript
+và cài LibreOffice/Poppler. Google/SMTP chỉ cần trên API.
 
-```text
-supabase/migrations/202608310001_examcure_ai.sql
-supabase/migrations/202610100001_admin_bootstrap.sql
-```
+Giới hạn upload 20 MB của API cũng phải được proxy/hosting cho phép. Nếu nền
+tảng có giới hạn thấp hơn, điều chỉnh giới hạn hoặc chọn proxy phù hợp. Dùng
+worker cho chuyển PDF/PNG để tránh request dài. Tạo câu hỏi AI vẫn xử lý trong
+request như trước; hosting phải cho phép thời gian xử lý tương ứng.
 
-Migration tạo schema, RLS, private Storage buckets, RPC nhận job (chỉ dùng cho
-worker tùy chọn) và RPC lưu đề theo giao dịch. Service-role key chỉ được dùng
-trong backend.
+Giữ JWT secret, backup MongoDB và bucket. SMTP/Google, S3, Atlas Search và
+OpenAI cần kiểm tra bằng cấu hình thật trước cutover.
 
-Sau khi đăng ký tài khoản quản trị, cấp vai trò một lần trong SQL Editor:
+## Xác minh trước sử dụng
 
-```sql
-update public.profiles
-set role = 'admin', updated_at = now()
-where id = (select id from auth.users where email = 'admin@example.com');
-```
+1. Đăng ký → OTP qua mail → xác thực → đăng nhập → reload vẫn giữ phiên.
+2. Google qua callback FE; URL không chứa token.
+3. Bootstrap/import admin; API cập nhật ngay khi đổi quyền.
+4. Upload PPTX → READY → xem text → tải gốc; sai dung lượng bị từ chối.
+5. Sinh câu hỏi → duyệt → tạo đề; kiểm tra đúng tài liệu/môn nguồn.
+6. Logout/reset: access/refresh và link tải cũ bị từ chối.
 
-Trong Supabase Authentication, cấu hình Site URL/Redirect URLs theo domain UI.
-Nếu dùng Google, bật Google provider. Nếu UI xác thực bằng OTP, email template
-đăng ký và khôi phục cần hiển thị `{{ .Token }}`.
+Test dùng MongoDB 8.0 replica set Docker thật. OpenAI/vector search/storage được
+mock trong unit test; chưa xác nhận dịch vụ production hoặc deployment.
 
-## 3. Khởi tạo MongoDB Vector Search
+Tham khảo: [Render Blueprint](https://render.com/docs/blueprint-spec),
+[Google OAuth](https://developers.google.com/identity/protocols/oauth2/web-server).
 
-MongoDB phải hỗ trợ Atlas Vector Search. Sau khi điền `.env`, chạy:
 
-```powershell
-npm run setup:mongodb-vector
-```
+## MongoDB local và cấu trúc document
 
-Lệnh tạo unique index `chunk_id`, index lọc phiên bản và Vector Search index có
-tên từ `MONGODB_VECTOR_INDEX`.
+Chạy `docker compose up -d --wait` trong BE. `.env.example` dùng URI local với
+`replicaSet=examcure-rs&directConnection=true`; dữ liệu nằm trong volume Docker.
+Dùng Atlas/replica set có authentication/TLS và backup cho production.
+Không chạy `docker compose down -v` nếu cần giữ dữ liệu local.
 
-## 4. Chế độ miễn phí: xử lý trực tiếp trong API Render
+- `users`, `otp_codes`, `refresh_tokens`: tài khoản, OTP và sessions có hash.
+- `subjects`, `materials`, `material_versions`, `slides`: môn, metadata và nội dung slide.
+- `processing_jobs`, `generation_runs`: hàng đợi worker và lần sinh câu hỏi.
+- `questions`: nhúng `question_options` và `question_sources`.
+- `exams`: nhúng `exam_questions`; `audit_logs` lưu details dạng object BSON.
+- `system_state`: trạng thái bootstrap một lần và khóa transaction.
+- `material_chunks`: vector và nội dung trích xuất; cùng database, khác collection.
 
-Không cần Background Worker và không cần cài LibreOffice/Poppler. Admin chỉ
-upload `.pptx` tối đa **20 MB**. Sau khi file được đưa vào Supabase Storage,
-API Render sẽ đồng bộ:
+UUID/API response được giữ để FE không đổi hợp đồng. Unique indexes bảo vệ email,
+Google subject, mã môn, số version, slide và refresh hash. TTL dọn OTP/session quá
+hạn; API luôn tự kiểm tra expiry, không phụ thuộc thời điểm TTL chạy. Metadata giữ
+ISO timestamps cho API; trường TTL là BSON Date. File PPTX/PDF/PNG nằm trong private
+S3 hoặc thư mục local, không lưu binary vào document MongoDB.
 
-1. đọc text và speaker notes từ từng slide;
-2. lưu text vào bảng `slides` của Supabase (không có `image_path`);
-3. tạo embedding qua OpenAI và lưu chunk vào MongoDB Atlas;
-4. đưa `material_versions.status` về `ready` để có thể tạo câu hỏi AI.
-
-Giữ request upload mở đến khi hoàn tất. Vì vậy file lớn/nhiều text sẽ chậm hơn
-và vẫn phát sinh chi phí OpenAI embedding. Chế độ này không hỗ trợ `.ppt`,
-không dựng PDF, không sinh ảnh slide và không trích được text nằm trong ảnh.
-
-Sau khi tài liệu `ready`, sinh viên đã đăng nhập có thể xem text/note từng slide
-trực tiếp tại trang môn học và tải file `.pptx` gốc. API chỉ tạo link tải private
-có hiệu lực 60 giây; không đưa `SUPABASE_SERVICE_ROLE_KEY` hoặc link Storage cố
-định ra frontend.
-
-## 5. Worker chuyển PowerPoint (tùy chọn, có phí Render)
-
-Chỉ dùng phần này khi cần chuyển `.ppt/.pptx` thành PDF và ảnh slide. Máy chạy
-worker cần:
-
-- LibreOffice (`soffice`) để chuyển `.ppt/.pptx` thành PDF.
-- Poppler `pdftoppm` để render ảnh PNG.
-- Poppler `pdftotext` để trích text dự phòng, nhất là `.ppt` cũ.
-
-Có thể đặt đường dẫn tuyệt đối trong `LIBREOFFICE_BIN`, `PDFTOPPM_BIN` và
-`PDFTOTEXT_BIN`. Kiểm tra trên Windows:
-
-```powershell
-where.exe soffice
-where.exe pdftoppm
-where.exe pdftotext
-```
-
-## 6. Chạy local
-
-Với chế độ không worker, chỉ mở một terminal tại repo backend:
-
-```powershell
-npm run dev
-```
-
-```powershell
-```
-
-UI chạy ở repo riêng và chỉ cần các biến public:
-
-```text
-NEXT_PUBLIC_API_URL=http://localhost:5010/api/v1
-NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
-```
-
-Luồng `/admin`: tạo môn học, upload `.pptx` bằng signed URL, API trích text/note
-và ghi vector, admin yêu cầu AI tạo câu hỏi nháp, duyệt câu hỏi, rồi tạo hoặc
-xuất bản đề thi.
-
-## 7. Kiểm tra trước khi triển khai hạ tầng
-
-```powershell
-npm run typecheck
-npm test
-npm run test:materials
-npm run build
-```
-
-Sau khi có Supabase/MongoDB/OpenAI thật, cần chạy E2E với một `.pptx`: kiểm tra
-số slide trong PostgreSQL, chunk trong MongoDB, citation của câu hỏi và quyền
-truy cập student/admin. PDF/ảnh chỉ xuất hiện khi có worker tùy chọn.
-
-## 8. Deploy API lên Render
-
-Backend Express chạy trên Render Web Service; Supabase vẫn là Auth, PostgreSQL
-và Storage. Với service tạo thủ công, thêm các biến sau trong **Environment**:
-
-```text
-NODE_ENV=production
-ENABLE_LEGACY_AUTH=false
-DEV_EXPOSE_OTP=false
-CORS_ORIGIN=https://TEN-FRONTEND-CUA-BAN
-SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=...
-MONGODB_URI=...
-OPENAI_API_KEY=...
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-OPENAI_QUESTION_MODEL=gpt-5.6-luna
-MONGODB_VECTOR_DIMENSIONS=1536
-```
-
-`JWT_SECRET` không được backend Supabase-only sử dụng, nhưng Blueprint sẽ sinh
-một giá trị bền vững để có thể bật lại auth cũ sau này. Nếu `ENABLE_LEGACY_AUTH`
-được đổi thành `true`, production bắt buộc có `JWT_SECRET` tối thiểu 32 ký tự và
-`SMTP_HOST`.
-
-Thiết lập Render:
-
-```text
-Build Command: npm ci --include=dev && npm run build
-Start Command: npm run start
-Health Check Path: /health
-```
-
-File `render.yaml` dùng `generateValue: true` cho JWT và `sync: false` cho các
-secret. Đối với service Render đã tồn tại, vẫn phải nhập secret trực tiếp trong
-Dashboard trước khi redeploy.
-
-## 9. Deploy PowerPoint worker bằng Docker trên Render (tùy chọn)
-
-Không tạo service này cho chế độ miễn phí ở mục 4. API đã xử lý `.pptx` text
-trực tiếp. Chỉ tạo khi cần PDF/ảnh slide hoặc file `.ppt` cũ.
-`Dockerfile.worker` cài `libreoffice-impress`, `pdftoppm` và `pdftotext`, rồi
-chạy `scripts/process-materials.mjs --watch` để nhận job từ `processing_jobs`.
-
-Trong Render Dashboard:
-
-1. Chọn **New → Background Worker** và kết nối cùng repo backend.
-2. Chọn runtime **Docker** và Dockerfile path `./Dockerfile.worker`.
-3. Chọn compute plan tối thiểu `0.5c-512mb`.
-4. Sao chép các Environment Variables sau từ Web Service API:
-
-```text
-SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY
-MONGODB_URI
-OPENAI_API_KEY
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-OPENAI_QUESTION_MODEL=gpt-5.6-luna
-MONGODB_DATABASE=examcure
-MONGODB_VECTOR_COLLECTION=material_chunks
-MONGODB_VECTOR_INDEX=material_vector_index
-MONGODB_VECTOR_DIMENSIONS=1536
-MATERIAL_WORKER_NAME=render-material-worker
-```
-
-Background Worker của Render không có free tier; chỉ tạo service khi đã chấp
-nhận chi phí compute. Sau khi deploy, log worker phải tiếp tục chạy mà không
-thoát; khi có PowerPoint được upload, log sẽ ghi số slide và chunk đã xử lý.
+Nguồn: [MongoDB transactions](https://www.mongodb.com/docs/drivers/node/current/crud/transactions/).

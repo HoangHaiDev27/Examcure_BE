@@ -1,23 +1,16 @@
-import { mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
-import type { OtpPurpose, User, UserRole, UserStatus } from "../domain/types.js";
+import { AsyncLocalStorage } from "node:async_hooks";
+import {
+  MongoClient,
+  type ClientSession,
+  type Filter,
+  type Sort,
+  type UpdateFilter,
+} from "mongodb";
+import type { OtpPurpose, User } from "../domain/types.js";
+import { initializeCollections } from "./indexes.js";
 
-interface UserRow {
-  id: string;
-  email: string;
-  full_name: string;
-  password_hash: string | null;
-  mssv: string;
-  school_id: string;
-  role: UserRole;
-  status: UserStatus;
-  google_subject: string | null;
-  email_verified_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
+export type DataRow = Record<string, any>;
+export type AppDocument = DataRow & { _id: string; id: string };
 export interface OtpRow {
   id: string;
   userId: string;
@@ -27,15 +20,13 @@ export interface OtpRow {
   attempts: number;
   consumedAt: string | null;
 }
-
 export interface RefreshTokenRow {
   id: string;
   userId: string;
   expiresAt: string;
   revokedAt: string | null;
 }
-
-function mapUser(row: UserRow): User {
+function mapUser(row: DataRow): User {
   return {
     id: row.id,
     email: row.email,
@@ -48,162 +39,340 @@ function mapUser(row: UserRow): User {
     googleSubject: row.google_subject,
     emailVerifiedAt: row.email_verified_at,
     createdAt: row.created_at,
-    updatedAt: row.updated_at
+    updatedAt: row.updated_at,
   };
 }
+const now = () => new Date().toISOString();
 
+/** MongoDB is the only application database. All operations inherit the current session. */
 export class AppDatabase {
-  private readonly db: DatabaseSync;
-
-  constructor(path: string) {
-    if (path !== ":memory:") {
-      const absolute = resolve(path);
-      mkdirSync(dirname(absolute), { recursive: true });
-      this.db = new DatabaseSync(absolute);
-    } else {
-      this.db = new DatabaseSync(path);
+  readonly client: MongoClient;
+  readonly ready: Promise<void>;
+  private context = new AsyncLocalStorage<ClientSession>();
+  constructor(
+    uri: string,
+    readonly databaseName = "examcure",
+  ) {
+    this.client = new MongoClient(uri, {
+      serverSelectionTimeoutMS: 8000,
+      maxPoolSize: 20,
+    });
+    this.ready = this.initialize();
+    // Startup/request handlers await this promise; avoid an unhandled rejection meanwhile.
+    void this.ready.catch(() => undefined);
+  }
+  private async initialize() {
+    await this.client.connect();
+    const hello = await this.client.db(this.databaseName).command({ hello: 1 });
+    if (!hello.setName && hello.msg !== "isdbgrid")
+      throw new Error(
+        "MongoDB must be a replica set or Atlas cluster to support auth/admin transactions",
+      );
+    await initializeCollections(this.client.db(this.databaseName));
+  }
+  private collection(name: string) {
+    return this.client.db(this.databaseName).collection<AppDocument>(name);
+  }
+  private options() {
+    const session = this.context.getStore();
+    return session ? { session } : {};
+  }
+  async find(
+    name: string,
+    filter: Filter<AppDocument> = {},
+    sort: Sort = {},
+    limit = 0,
+  ): Promise<DataRow[]> {
+    await this.ready;
+    return this.collection(name)
+      .find(filter, { ...this.options(), projection: { _id: 0 } })
+      .sort(sort)
+      .limit(limit)
+      .toArray();
+  }
+  async findOne(
+    name: string,
+    filter: Filter<AppDocument>,
+    sort: Sort = {},
+  ): Promise<DataRow | null> {
+    await this.ready;
+    return this.collection(name).findOne(filter, {
+      ...this.options(),
+      sort,
+      projection: { _id: 0 },
+    });
+  }
+  async count(name: string, filter: Filter<AppDocument> = {}) {
+    await this.ready;
+    return this.collection(name).countDocuments(filter, this.options());
+  }
+  async insert(name: string, row: DataRow & { id: string }): Promise<void> {
+    await this.ready;
+    await this.collection(name).insertOne(
+      { ...row, _id: row.id },
+      this.options(),
+    );
+  }
+  async update(
+    name: string,
+    filter: Filter<AppDocument>,
+    update: UpdateFilter<AppDocument>,
+    upsert = false,
+  ) {
+    await this.ready;
+    return this.collection(name).updateOne(filter, update, {
+      ...this.options(),
+      upsert,
+    });
+  }
+  async updateMany(
+    name: string,
+    filter: Filter<AppDocument>,
+    update: UpdateFilter<AppDocument>,
+  ) {
+    await this.ready;
+    return this.collection(name).updateMany(filter, update, this.options());
+  }
+  async transaction<T>(task: () => Promise<T>): Promise<T> {
+    await this.ready;
+    if (this.context.getStore()) return task();
+    const session = this.client.startSession();
+    try {
+      return await session.withTransaction(
+        () =>
+          this.context.run(session, async () => {
+            // Serialize business invariants across processes. A write conflict retries the
+            // whole snapshot, so concurrent bootstrap/role changes cannot remove every admin.
+            const locked = await this.collection("system_state").updateOne(
+              { _id: "business-lock" },
+              { $inc: { revision: 1 } },
+              { session },
+            );
+            if (locked.matchedCount !== 1)
+              throw new Error(
+                "MongoDB transaction state is missing; restart the API to initialize it",
+              );
+            return task();
+          }),
+        {
+          readConcern: { level: "snapshot" },
+          writeConcern: { w: "majority" },
+          readPreference: "primary",
+        },
+      );
+    } finally {
+      await session.endSession();
     }
-    this.db.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
-    this.migrate();
   }
-
-  private migrate(): void {
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        email TEXT NOT NULL UNIQUE COLLATE NOCASE,
-        full_name TEXT NOT NULL,
-        password_hash TEXT,
-        mssv TEXT NOT NULL DEFAULT '',
-        school_id TEXT NOT NULL DEFAULT 'fptu',
-        role TEXT NOT NULL DEFAULT 'student' CHECK(role IN ('student', 'admin')),
-        status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'active')),
-        google_subject TEXT UNIQUE,
-        email_verified_at TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS otp_codes (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        purpose TEXT NOT NULL CHECK(purpose IN ('verify-email', 'reset-password')),
-        code_hash TEXT NOT NULL,
-        expires_at TEXT NOT NULL,
-        attempts INTEGER NOT NULL DEFAULT 0,
-        consumed_at TEXT,
-        created_at TEXT NOT NULL
-      );
-      CREATE INDEX IF NOT EXISTS idx_otp_user_purpose ON otp_codes(user_id, purpose, created_at DESC);
-      CREATE TABLE IF NOT EXISTS refresh_tokens (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        token_hash TEXT NOT NULL UNIQUE,
-        expires_at TEXT NOT NULL,
-        revoked_at TEXT,
-        created_at TEXT NOT NULL
-      );
-      CREATE INDEX IF NOT EXISTS idx_refresh_hash ON refresh_tokens(token_hash);
-    `);
-  }
-
-  findUserByEmail(email: string): User | null {
-    const row = this.db.prepare("SELECT * FROM users WHERE email = ? COLLATE NOCASE").get(email) as UserRow | undefined;
+  async findUserByEmail(email: string): Promise<User | null> {
+    const row = await this.findOne("users", { email: email.toLowerCase() });
     return row ? mapUser(row) : null;
   }
-
-  findUserById(id: string): User | null {
-    const row = this.db.prepare("SELECT * FROM users WHERE id = ?").get(id) as UserRow | undefined;
+  async findUserById(id: string): Promise<User | null> {
+    const row = await this.findOne("users", { id });
     return row ? mapUser(row) : null;
   }
-
-  findUserByGoogleSubject(subject: string): User | null {
-    const row = this.db.prepare("SELECT * FROM users WHERE google_subject = ?").get(subject) as UserRow | undefined;
+  async findUserByGoogleSubject(subject: string): Promise<User | null> {
+    const row = await this.findOne("users", { google_subject: subject });
     return row ? mapUser(row) : null;
   }
-
-  createUser(input: Omit<User, "createdAt" | "updatedAt">): User {
-    const now = new Date().toISOString();
-    this.db.prepare(`
-      INSERT INTO users (id, email, full_name, password_hash, mssv, school_id, role, status, google_subject, email_verified_at, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(input.id, input.email, input.fullName, input.passwordHash, input.mssv, input.schoolId, input.role, input.status, input.googleSubject, input.emailVerifiedAt, now, now);
-    return this.findUserById(input.id)!;
+  async createUser(
+    input: Omit<User, "createdAt" | "updatedAt">,
+  ): Promise<User> {
+    const timestamp = now();
+    await this.insert("users", {
+      id: input.id,
+      email: input.email.toLowerCase(),
+      full_name: input.fullName,
+      password_hash: input.passwordHash,
+      mssv: input.mssv,
+      school_id: input.schoolId,
+      role: input.role,
+      status: input.status,
+      google_subject: input.googleSubject,
+      email_verified_at: input.emailVerifiedAt,
+      created_at: timestamp,
+      updated_at: timestamp,
+    });
+    return (await this.findUserById(input.id))!;
   }
-
-  updatePendingUser(id: string, fullName: string, passwordHash: string, mssv: string, schoolId: string): User {
-    this.db.prepare(`UPDATE users SET full_name = ?, password_hash = ?, mssv = ?, school_id = ?, updated_at = ? WHERE id = ?`)
-      .run(fullName, passwordHash, mssv, schoolId, new Date().toISOString(), id);
-    return this.findUserById(id)!;
+  async updatePendingUser(
+    id: string,
+    fullName: string,
+    passwordHash: string,
+    mssv: string,
+    schoolId: string,
+  ): Promise<User> {
+    await this.update(
+      "users",
+      { id, status: "pending" },
+      {
+        $set: {
+          full_name: fullName,
+          password_hash: passwordHash,
+          mssv,
+          school_id: schoolId,
+          updated_at: now(),
+        },
+      },
+    );
+    return (await this.findUserById(id))!;
   }
-
-  activateUser(id: string): User {
-    const now = new Date().toISOString();
-    this.db.prepare("UPDATE users SET status = 'active', email_verified_at = COALESCE(email_verified_at, ?), updated_at = ? WHERE id = ?")
-      .run(now, now, id);
-    return this.findUserById(id)!;
+  async activateUser(id: string): Promise<User> {
+    const user = (await this.findUserById(id))!;
+    await this.update(
+      "users",
+      { id },
+      {
+        $set: {
+          status: "active",
+          email_verified_at: user.emailVerifiedAt || now(),
+          updated_at: now(),
+        },
+      },
+    );
+    return (await this.findUserById(id))!;
   }
-
-  connectGoogle(id: string, subject: string, fullName: string): User {
-    this.db.prepare(`UPDATE users SET google_subject = ?, full_name = ?, status = 'active', email_verified_at = COALESCE(email_verified_at, ?), updated_at = ? WHERE id = ?`)
-      .run(subject, fullName, new Date().toISOString(), new Date().toISOString(), id);
-    return this.findUserById(id)!;
+  async connectGoogle(
+    id: string,
+    subject: string,
+    fullName: string,
+  ): Promise<User> {
+    const user = (await this.findUserById(id))!;
+    await this.update(
+      "users",
+      { id },
+      {
+        $set: {
+          google_subject: subject,
+          full_name: fullName,
+          password_hash: user.status === "pending" ? null : user.passwordHash,
+          status: "active",
+          email_verified_at: user.emailVerifiedAt || now(),
+          updated_at: now(),
+        },
+      },
+    );
+    return (await this.findUserById(id))!;
   }
-
-  updatePassword(id: string, passwordHash: string): void {
-    this.db.prepare("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?")
-      .run(passwordHash, new Date().toISOString(), id);
+  async updatePassword(id: string, passwordHash: string): Promise<void> {
+    await this.update(
+      "users",
+      { id },
+      { $set: { password_hash: passwordHash, updated_at: now() } },
+    );
   }
-
-  updateProfile(id: string, fullName: string, mssv: string, schoolId: string): User {
-    this.db.prepare("UPDATE users SET full_name = ?, mssv = ?, school_id = ?, updated_at = ? WHERE id = ?")
-      .run(fullName, mssv, schoolId, new Date().toISOString(), id);
-    return this.findUserById(id)!;
+  async updateProfile(
+    id: string,
+    fullName: string,
+    mssv: string,
+    schoolId: string,
+  ): Promise<User> {
+    await this.update(
+      "users",
+      { id },
+      {
+        $set: {
+          full_name: fullName,
+          mssv,
+          school_id: schoolId,
+          updated_at: now(),
+        },
+      },
+    );
+    return (await this.findUserById(id))!;
   }
-
-  replaceOtp(input: OtpRow): void {
-    const now = new Date().toISOString();
-    this.db.prepare("UPDATE otp_codes SET consumed_at = ? WHERE user_id = ? AND purpose = ? AND consumed_at IS NULL")
-      .run(now, input.userId, input.purpose);
-    this.db.prepare(`INSERT INTO otp_codes (id, user_id, purpose, code_hash, expires_at, attempts, consumed_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-      .run(input.id, input.userId, input.purpose, input.codeHash, input.expiresAt, input.attempts, input.consumedAt, now);
+  async replaceOtp(input: OtpRow): Promise<void> {
+    await this.transaction(async () => {
+      await this.updateMany(
+        "otp_codes",
+        { user_id: input.userId, purpose: input.purpose, consumed_at: null },
+        { $set: { consumed_at: now() } },
+      );
+      await this.insert("otp_codes", {
+        id: input.id,
+        user_id: input.userId,
+        purpose: input.purpose,
+        code_hash: input.codeHash,
+        expires_at: input.expiresAt,
+        attempts: input.attempts,
+        consumed_at: input.consumedAt,
+        created_at: now(),
+        purge_at: new Date(Date.parse(input.expiresAt) + 86400000),
+      });
+    });
   }
-
-  getLatestOtp(userId: string, purpose: OtpPurpose): OtpRow | null {
-    const row = this.db.prepare(`SELECT id, user_id, purpose, code_hash, expires_at, attempts, consumed_at FROM otp_codes WHERE user_id = ? AND purpose = ? ORDER BY created_at DESC LIMIT 1`)
-      .get(userId, purpose) as { id: string; user_id: string; purpose: OtpPurpose; code_hash: string; expires_at: string; attempts: number; consumed_at: string | null } | undefined;
-    return row ? { id: row.id, userId: row.user_id, purpose: row.purpose, codeHash: row.code_hash, expiresAt: row.expires_at, attempts: row.attempts, consumedAt: row.consumed_at } : null;
+  async getLatestOtp(
+    userId: string,
+    purpose: OtpPurpose,
+  ): Promise<OtpRow | null> {
+    // Replacement consumes previous codes atomically. Prefer the only live code
+    // even when two replacements have the same millisecond timestamp.
+    const filter = { user_id: userId, purpose };
+    const row =
+      (await this.findOne("otp_codes", { ...filter, consumed_at: null })) ??
+      (await this.findOne("otp_codes", filter, { created_at: -1, id: -1 }));
+    return row
+      ? {
+          id: row.id,
+          userId: row.user_id,
+          purpose: row.purpose,
+          codeHash: row.code_hash,
+          expiresAt: row.expires_at,
+          attempts: row.attempts,
+          consumedAt: row.consumed_at,
+        }
+      : null;
   }
-
-  incrementOtpAttempts(id: string): void {
-    this.db.prepare("UPDATE otp_codes SET attempts = attempts + 1 WHERE id = ?").run(id);
+  async incrementOtpAttempts(id: string): Promise<void> {
+    await this.update("otp_codes", { id }, { $inc: { attempts: 1 } });
   }
-
-  consumeOtp(id: string): void {
-    this.db.prepare("UPDATE otp_codes SET consumed_at = ? WHERE id = ?").run(new Date().toISOString(), id);
+  async consumeOtp(id: string): Promise<void> {
+    await this.update("otp_codes", { id }, { $set: { consumed_at: now() } });
   }
-
-  createRefreshToken(id: string, userId: string, tokenHash: string, expiresAt: string): void {
-    this.db.prepare("INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)")
-      .run(id, userId, tokenHash, expiresAt, new Date().toISOString());
+  async createRefreshToken(
+    id: string,
+    userId: string,
+    tokenHash: string,
+    expiresAt: string,
+  ): Promise<void> {
+    await this.insert("refresh_tokens", {
+      id,
+      user_id: userId,
+      token_hash: tokenHash,
+      expires_at: expiresAt,
+      revoked_at: null,
+      created_at: now(),
+      purge_at: new Date(Date.parse(expiresAt) + 86400000),
+    });
   }
-
-  findRefreshToken(tokenHash: string): RefreshTokenRow | null {
-    const row = this.db.prepare("SELECT id, user_id, expires_at, revoked_at FROM refresh_tokens WHERE token_hash = ?")
-      .get(tokenHash) as { id: string; user_id: string; expires_at: string; revoked_at: string | null } | undefined;
-    return row ? { id: row.id, userId: row.user_id, expiresAt: row.expires_at, revokedAt: row.revoked_at } : null;
+  async findRefreshToken(tokenHash: string): Promise<RefreshTokenRow | null> {
+    const row = await this.findOne("refresh_tokens", { token_hash: tokenHash });
+    return row
+      ? {
+          id: row.id,
+          userId: row.user_id,
+          expiresAt: row.expires_at,
+          revokedAt: row.revoked_at,
+        }
+      : null;
   }
-
-  revokeRefreshToken(id: string): void {
-    this.db.prepare("UPDATE refresh_tokens SET revoked_at = COALESCE(revoked_at, ?) WHERE id = ?")
-      .run(new Date().toISOString(), id);
+  async revokeRefreshToken(id: string): Promise<void> {
+    await this.update(
+      "refresh_tokens",
+      { id, revoked_at: null },
+      { $set: { revoked_at: now() } },
+    );
   }
-
-  revokeAllRefreshTokens(userId: string): void {
-    this.db.prepare("UPDATE refresh_tokens SET revoked_at = COALESCE(revoked_at, ?) WHERE user_id = ?")
-      .run(new Date().toISOString(), userId);
+  async revokeAllRefreshTokens(userId: string): Promise<void> {
+    await this.updateMany(
+      "refresh_tokens",
+      { user_id: userId, revoked_at: null },
+      { $set: { revoked_at: now() } },
+    );
   }
-
-  close(): void {
-    this.db.close();
+  async close(): Promise<void> {
+    await this.ready.catch(() => undefined);
+    await this.client.close();
   }
 }

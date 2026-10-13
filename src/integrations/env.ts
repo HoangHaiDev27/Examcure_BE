@@ -25,7 +25,7 @@ export function integrationStatus() {
     return Boolean(value && !value.includes("YOUR_") && !value.includes("USER:PASSWORD"));
   };
   return {
-    supabase: configured("SUPABASE_URL") && configured("SUPABASE_SERVICE_ROLE_KEY"),
+
     mongodb: configured("MONGODB_URI"),
     openai:
       configured("OPENAI_API_KEY") &&

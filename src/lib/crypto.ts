@@ -1,10 +1,11 @@
+import { compare } from "bcryptjs";
 import {
   createHash,
   createHmac,
   randomBytes,
   randomInt,
   scrypt as scryptCallback,
-  timingSafeEqual
+  timingSafeEqual,
 } from "node:crypto";
 import { promisify } from "node:util";
 
@@ -16,11 +17,19 @@ export async function hashPassword(password: string): Promise<string> {
   return `scrypt$${salt.toString("base64url")}$${derived.toString("base64url")}`;
 }
 
-export async function verifyPassword(password: string, encoded: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  encoded: string,
+): Promise<boolean> {
+  if (/^\$2[aby]\$/.test(encoded)) return compare(password, encoded);
   const [algorithm, saltValue, hashValue] = encoded.split("$");
   if (algorithm !== "scrypt" || !saltValue || !hashValue) return false;
   const expected = Buffer.from(hashValue, "base64url");
-  const actual = (await scrypt(password, Buffer.from(saltValue, "base64url"), expected.length)) as Buffer;
+  const actual = (await scrypt(
+    password,
+    Buffer.from(saltValue, "base64url"),
+    expected.length,
+  )) as Buffer;
   return timingSafeEqual(actual, expected);
 }
 
@@ -28,8 +37,15 @@ export function generateOtp(): string {
   return randomInt(0, 1_000_000).toString().padStart(6, "0");
 }
 
-export function hashOtp(secret: string, userId: string, purpose: string, otp: string): string {
-  return createHmac("sha256", secret).update(`${userId}:${purpose}:${otp}`).digest("hex");
+export function hashOtp(
+  secret: string,
+  userId: string,
+  purpose: string,
+  otp: string,
+): string {
+  return createHmac("sha256", secret)
+    .update(`${userId}:${purpose}:${otp}`)
+    .digest("hex");
 }
 
 export function generateRefreshToken(): string {
