@@ -39,9 +39,33 @@ export function createMaterialsRouter(
     const body = z
       .object({
         schoolCode: z.string().trim().min(1).max(50),
-        subjectCode: z.string().trim().min(1).max(50),
+        subjectCode: z.string().trim().min(1).max(50).optional(),
       })
       .parse(req.query);
+    if (body.subjectCode === undefined) {
+      const rows = await repo.listSchoolMaterials(body.schoolCode);
+      res.json({
+        materials: rows.map((v) => ({
+          id: v.mid,
+          title: v.title,
+          description: v.description,
+          createdAt: v.mcreated,
+          subjectId: v.subject_id,
+          subjectCode: v.subject_code,
+          subjectName: v.subject_name,
+          version: {
+            id: v.id,
+            version_number: v.version_number,
+            original_filename: v.original_filename,
+            mime_type: v.mime_type,
+            size_bytes: v.size_bytes,
+            slide_count: v.slide_count,
+            processed_at: v.processed_at,
+          },
+        })),
+      });
+      return;
+    }
     const rows = await repo.listMaterials(body.schoolCode, body.subjectCode);
     res.json({
       materials: rows.map((v) => ({

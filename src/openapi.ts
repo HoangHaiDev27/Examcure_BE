@@ -1,3 +1,63 @@
+const errorRef = { $ref: "#/components/schemas/Error" };
+const errors = (...codes: string[]) =>
+  Object.fromEntries(
+    codes.map((c) => [
+      c,
+      {
+        description: "Error",
+        content: { "application/json": { schema: errorRef } },
+      },
+    ]),
+  );
+const ok = (description: string, schema: object) => ({
+  description,
+  content: { "application/json": { schema } },
+});
+const pathUuid = (name: string) => ({
+  name,
+  in: "path",
+  required: true,
+  schema: { type: "string", format: "uuid" },
+});
+const limitQuery = {
+  name: "limit",
+  in: "query",
+  schema: { type: "integer", minimum: 1, maximum: 50, default: 20 },
+};
+const nullable = (type: string) => ({ type: [type, "null"] });
+const option = {
+  type: "object",
+  properties: {
+    position: { type: "integer", minimum: 0, maximum: 3 },
+    content: { type: "string" },
+  },
+};
+const subjectRef = {
+  type: "object",
+  properties: {
+    id: { type: "string", format: "uuid" },
+    schoolCode: { type: "string" },
+    code: { type: "string" },
+    name: { type: "string" },
+  },
+};
+const attemptItem = {
+  type: "object",
+  properties: {
+    id: { type: "string", format: "uuid" },
+    examId: { type: "string", format: "uuid" },
+    examTitle: nullable("string"),
+    subjectId: { type: "string", format: "uuid" },
+    subjectCode: nullable("string"),
+    subjectName: nullable("string"),
+    score: { type: "number" },
+    correctCount: { type: "integer" },
+    totalCount: { type: "integer" },
+    submittedAt: { type: "string", format: "date-time" },
+  },
+};
+const auth = [{ bearerAuth: [] }];
+
 export const openApiDocument = {
   openapi: "3.1.0",
   info: {
@@ -12,6 +72,11 @@ export const openApiDocument = {
     { name: "Auth" },
     { name: "Users" },
     { name: "Admin" },
+    { name: "Subjects" },
+    { name: "Exams" },
+    { name: "Attempts" },
+    { name: "Me" },
+    { name: "Materials" },
   ],
   components: {
     securitySchemes: {
@@ -266,8 +331,371 @@ export const openApiDocument = {
       get: {
         tags: ["Materials"],
         security: [{ bearerAuth: [] }],
-        summary: "List ready course materials for a school subject",
-        responses: { "200": { description: "Ready material versions" } },
+        summary:
+          "List ready materials. With subjectCode: every ready version of that subject. Without it: the latest ready version of each material in the school (max 200)",
+        parameters: [
+          {
+            name: "schoolCode",
+            in: "query",
+            required: true,
+            schema: { type: "string", maxLength: 50 },
+          },
+          {
+            name: "subjectCode",
+            in: "query",
+            required: false,
+            schema: { type: "string", maxLength: 50 },
+          },
+        ],
+        responses: {
+          "200": ok("Ready material versions", {
+            type: "object",
+            properties: {
+              materials: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string", format: "uuid" },
+                    title: { type: "string" },
+                    description: nullable("string"),
+                    createdAt: { type: "string" },
+                    subjectId: { type: "string", format: "uuid" },
+                    subjectCode: { type: "string" },
+                    subjectName: { type: "string" },
+                    version: {
+                      type: "object",
+                      properties: {
+                        id: { type: "string", format: "uuid" },
+                        version_number: { type: "integer" },
+                        original_filename: { type: "string" },
+                        mime_type: { type: "string" },
+                        size_bytes: { type: "integer" },
+                        slide_count: { type: "integer" },
+                        processed_at: nullable("string"),
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          }),
+          ...errors("400", "401"),
+        },
+      },
+    },
+    "/Subjects": {
+      get: {
+        tags: ["Subjects"],
+        security: auth,
+        summary: "List subjects of a school with the caller's last score",
+        parameters: [
+          {
+            name: "schoolCode",
+            in: "query",
+            required: true,
+            schema: { type: "string", pattern: "^[a-zA-Z0-9-]+$", maxLength: 50 },
+          },
+          { name: "code", in: "query", schema: { type: "string", maxLength: 50 } },
+        ],
+        responses: {
+          "200": ok("Subjects sorted by first curriculum term then code", {
+            type: "object",
+            properties: {
+              subjects: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    ...subjectRef.properties,
+                    description: nullable("string"),
+                    faculty: nullable("string"),
+                    terms: { type: "array", items: { type: "integer" } },
+                    kind: nullable("string"),
+                    durationMin: nullable("integer"),
+                    questionCount: nullable("integer"),
+                    difficulty: nullable("string"),
+                    publishedExamCount: { type: "integer" },
+                    lastScore: nullable("number"),
+                  },
+                },
+              },
+            },
+          }),
+          ...errors("400", "401"),
+        },
+      },
+    },
+    "/Subjects/{subjectId}/exams": {
+      get: {
+        tags: ["Subjects"],
+        security: auth,
+        summary: "List published exams of a subject",
+        parameters: [pathUuid("subjectId")],
+        responses: {
+          "200": ok("Published exams, newest first", {
+            type: "object",
+            properties: {
+              exams: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string", format: "uuid" },
+                    title: { type: "string" },
+                    durationMinutes: { type: "integer" },
+                    questionCount: { type: "integer" },
+                    publishedAt: nullable("string"),
+                    lastScore: nullable("number"),
+                  },
+                },
+              },
+            },
+          }),
+          ...errors("400", "401", "404"),
+        },
+      },
+    },
+    "/Exams/{examId}": {
+      get: {
+        tags: ["Exams"],
+        security: auth,
+        summary: "Fetch a published exam to take. Answers are never included",
+        parameters: [pathUuid("examId")],
+        responses: {
+          "200": ok("Exam with questions", {
+            type: "object",
+            properties: {
+              exam: {
+                type: "object",
+                properties: {
+                  id: { type: "string", format: "uuid" },
+                  title: { type: "string" },
+                  durationMinutes: { type: "integer" },
+                  questionCount: { type: "integer" },
+                  subject: subjectRef,
+                  questions: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        id: { type: "string", format: "uuid" },
+                        prompt: { type: "string" },
+                        options: { type: "array", items: option },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          }),
+          ...errors("400", "401", "404", "409"),
+        },
+      },
+    },
+    "/Exams/{examId}/attempts": {
+      post: {
+        tags: ["Exams"],
+        security: auth,
+        summary: "Submit answers; the server grades and stores the attempt",
+        parameters: [pathUuid("examId")],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["answers", "spentSec"],
+                properties: {
+                  answers: {
+                    type: "array",
+                    maxItems: 200,
+                    items: {
+                      type: "object",
+                      required: ["questionId", "selectedPosition"],
+                      properties: {
+                        questionId: { type: "string", format: "uuid" },
+                        selectedPosition: {
+                          type: ["integer", "null"],
+                          minimum: 0,
+                          maximum: 3,
+                        },
+                      },
+                    },
+                  },
+                  spentSec: { type: "integer", minimum: 0, maximum: 86400 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "201": ok("Attempt graded", {
+            type: "object",
+            properties: {
+              attemptId: { type: "string", format: "uuid" },
+              score: { type: "number" },
+              correctCount: { type: "integer" },
+              totalCount: { type: "integer" },
+            },
+          }),
+          ...errors("400", "401", "404", "409", "429"),
+        },
+      },
+    },
+    "/Attempts/{attemptId}": {
+      get: {
+        tags: ["Attempts"],
+        security: auth,
+        summary: "Read the caller's own graded attempt",
+        parameters: [pathUuid("attemptId")],
+        responses: {
+          "200": ok("Attempt review", {
+            type: "object",
+            properties: {
+              attempt: {
+                type: "object",
+                properties: {
+                  id: { type: "string", format: "uuid" },
+                  score: { type: "number" },
+                  correctCount: { type: "integer" },
+                  totalCount: { type: "integer" },
+                  spentSec: { type: "integer" },
+                  submittedAt: { type: "string", format: "date-time" },
+                  exam: {
+                    type: "object",
+                    properties: {
+                      id: { type: "string", format: "uuid" },
+                      title: nullable("string"),
+                      durationMinutes: nullable("integer"),
+                    },
+                  },
+                  subject: subjectRef,
+                  questions: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        id: { type: "string", format: "uuid" },
+                        prompt: nullable("string"),
+                        options: { type: "array", items: option },
+                        selectedPosition: nullable("integer"),
+                        correctPosition: nullable("integer"),
+                        isCorrect: { type: "boolean" },
+                        explanation: nullable("string"),
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          }),
+          ...errors("400", "401", "404"),
+        },
+      },
+    },
+    "/Me/dashboard": {
+      get: {
+        tags: ["Me"],
+        security: auth,
+        summary: "Dashboard statistics for the caller",
+        responses: {
+          "200": ok("Dashboard", {
+            type: "object",
+            properties: {
+              stats: {
+                type: "object",
+                properties: {
+                  totalAttempts: { type: "integer" },
+                  averageScore: nullable("number"),
+                  attemptsThisWeek: { type: "integer" },
+                  subjectsInProgress: { type: "integer" },
+                  rankPercentile: nullable("integer"),
+                },
+              },
+              trend: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    score: { type: "number" },
+                    submittedAt: { type: "string", format: "date-time" },
+                  },
+                },
+              },
+              recentAttempts: { type: "array", items: attemptItem },
+              weakestSubject: {
+                type: ["object", "null"],
+                properties: {
+                  subjectId: { type: "string", format: "uuid" },
+                  code: { type: "string" },
+                  name: { type: "string" },
+                  averageScore: { type: "number" },
+                },
+              },
+            },
+          }),
+          ...errors("401"),
+        },
+      },
+    },
+    "/Me/attempts": {
+      get: {
+        tags: ["Me"],
+        security: auth,
+        summary: "Paginated attempt history of the caller",
+        parameters: [
+          limitQuery,
+          {
+            name: "before",
+            in: "query",
+            description: "Exclusive ISO cursor",
+            schema: { type: "string", format: "date-time" },
+          },
+        ],
+        responses: {
+          "200": ok("Attempts, newest first", {
+            type: "object",
+            properties: {
+              attempts: { type: "array", items: attemptItem },
+              nextBefore: nullable("string"),
+            },
+          }),
+          ...errors("400", "401"),
+        },
+      },
+    },
+    "/Me/wrong-answers": {
+      get: {
+        tags: ["Me"],
+        security: auth,
+        summary: "Questions whose latest answer by the caller was wrong",
+        parameters: [limitQuery],
+        responses: {
+          "200": ok("Wrong answers", {
+            type: "object",
+            properties: {
+              items: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    questionId: { type: "string", format: "uuid" },
+                    subjectId: { type: "string", format: "uuid" },
+                    subjectCode: nullable("string"),
+                    subjectName: nullable("string"),
+                    prompt: { type: "string" },
+                    yourAnswer: nullable("string"),
+                    correctAnswer: nullable("string"),
+                    explanation: nullable("string"),
+                    submittedAt: { type: "string", format: "date-time" },
+                  },
+                },
+              },
+            },
+          }),
+          ...errors("400", "401"),
+        },
       },
     },
     "/Materials/{versionId}/slides": {
@@ -283,7 +711,34 @@ export const openApiDocument = {
             schema: { type: "string", format: "uuid" },
           },
         ],
-        responses: { "200": { description: "Extracted slide content" } },
+        responses: {
+          "200": ok("Extracted slide content", {
+            type: "object",
+            properties: {
+              material: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  schoolCode: { type: "string" },
+                  subjectCode: { type: "string" },
+                },
+              },
+              version: { type: "object" },
+              slides: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    slide_number: { type: "integer" },
+                    text_content: { type: "string" },
+                    notes: nullable("string"),
+                  },
+                },
+              },
+            },
+          }),
+          ...errors("400", "401", "404"),
+        },
       },
     },
     "/Materials/{versionId}/download": {
@@ -299,7 +754,17 @@ export const openApiDocument = {
             schema: { type: "string", format: "uuid" },
           },
         ],
-        responses: { "200": { description: "Signed download URL" } },
+        responses: {
+          "200": ok("Signed download URL", {
+            type: "object",
+            properties: {
+              url: { type: "string" },
+              filename: { type: "string" },
+              expiresInSeconds: { type: "integer" },
+            },
+          }),
+          ...errors("400", "401", "404"),
+        },
       },
     },
     "/Admin/question-generation": {

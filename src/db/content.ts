@@ -603,6 +603,44 @@ export class ContentRepository {
       }),
     };
   }
+  /** Latest ready version of each material across a whole school. */
+  async listSchoolMaterials(schoolCode: string): Promise<DataRow[]> {
+    const subjects = await this.db.find("subjects", {
+      school_code: schoolCode.toLowerCase(),
+    });
+    if (!subjects.length) return [];
+    const bySubject = new Map(subjects.map((s) => [s.id as string, s]));
+    const materials = await this.db.find(
+      "materials",
+      { subject_id: { $in: [...bySubject.keys()] } },
+      { created_at: -1 },
+    );
+    if (!materials.length) return [];
+    const versions = await this.db.find(
+      "material_versions",
+      { material_id: { $in: materials.map((m) => m.id) }, status: "ready" },
+      { version_number: -1 },
+    );
+    const latest = new Map<string, DataRow>();
+    for (const v of versions)
+      if (!latest.has(v.material_id)) latest.set(v.material_id, v);
+    return materials
+      .filter((m) => latest.has(m.id))
+      .slice(0, 200)
+      .map((m) => {
+        const s = bySubject.get(m.subject_id)!;
+        return {
+          ...latest.get(m.id)!,
+          mid: m.id,
+          title: m.title,
+          description: m.description,
+          mcreated: m.created_at,
+          subject_id: s.id,
+          subject_code: s.display_code ?? s.code,
+          subject_name: s.name,
+        };
+      });
+  }
   async changeRole(actor: string, userId: string, role: string) {
     return this.db.transaction(async () => {
       if ((await this.db.findUserById(actor))?.role !== "admin")
