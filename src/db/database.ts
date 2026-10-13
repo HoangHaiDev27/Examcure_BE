@@ -223,11 +223,29 @@ export class AppDatabase {
           password_hash: passwordHash,
           mssv,
           school_id: schoolId,
+          status: "active",
           updated_at: now(),
         },
       },
     );
     return (await this.findUserById(id))!;
+  }
+  /** Activates a legacy pending account without claiming the email was verified. */
+  async activateWithoutVerification(id: string): Promise<User> {
+    await this.update(
+      "users",
+      { id, status: "pending" },
+      { $set: { status: "active", updated_at: now() } },
+    );
+    return (await this.findUserById(id))!;
+  }
+  /** Records email ownership (proved by a reset OTP) if it was not recorded yet. */
+  async markEmailVerified(id: string): Promise<void> {
+    await this.update(
+      "users",
+      { id, email_verified_at: null },
+      { $set: { email_verified_at: now(), updated_at: now() } },
+    );
   }
   async activateUser(id: string): Promise<User> {
     const user = (await this.findUserById(id))!;
@@ -257,7 +275,7 @@ export class AppDatabase {
         $set: {
           google_subject: subject,
           full_name: fullName,
-          password_hash: user.status === "pending" ? null : user.passwordHash,
+          password_hash: user.emailVerifiedAt ? user.passwordHash : null,
           status: "active",
           email_verified_at: user.emailVerifiedAt || now(),
           updated_at: now(),

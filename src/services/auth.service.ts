@@ -94,7 +94,7 @@ export class AuthService {
     fullName: string;
     mssv: string;
     schoolId: string;
-  }) {
+  }): Promise<AuthResponse> {
     const email = input.email.trim().toLowerCase();
     const passwordHash = await hashPassword(input.password);
     const user = await this.db.transaction(async () => {
@@ -117,19 +117,12 @@ export class AuthService {
             mssv: input.mssv.trim(),
             schoolId: input.schoolId,
             role: "student",
-            status: "pending",
+            status: "active",
             googleSubject: null,
             emailVerifiedAt: null,
           });
     });
-    const otp = await this.issueOtp(user, "verify-email");
-    return {
-      success: true,
-      message: "Đăng ký thành công. Vui lòng kiểm tra mã OTP.",
-      ...(this.config.NODE_ENV !== "production" && this.config.DEV_EXPOSE_OTP
-        ? { otp }
-        : {}),
-    };
+    return this.authResponse(user);
   }
 
   async resendVerification(emailValue: string) {
@@ -188,20 +181,18 @@ export class AuthService {
         "INVALID_CREDENTIALS",
       );
     }
-    if (user.status !== "active") {
-      throw new AppError(
-        403,
-        "Tài khoản chưa được xác thực.",
-        "EMAIL_NOT_VERIFIED",
-      );
-    }
     return this.db.transaction(async () => {
-      const current = await this.db.findUserById(user.id);
-      if (
-        !current ||
-        current.status !== "active" ||
-        current.passwordHash !== user.passwordHash
-      )
+      let current = await this.db.findUserById(user.id);
+      if (!current || current.passwordHash !== user.passwordHash)
+        throw new AppError(
+          401,
+          "Thông tin đăng nhập đã thay đổi. Vui lòng thử lại.",
+          "INVALID_CREDENTIALS",
+        );
+      // Legacy accounts that never verified their email are activated by a correct password.
+      if (current.status === "pending")
+        current = await this.db.activateWithoutVerification(current.id);
+      if (current.status !== "active")
         throw new AppError(
           401,
           "Thông tin đăng nhập đã thay đổi. Vui lòng thử lại.",
@@ -224,11 +215,15 @@ export class AuthService {
             "Email đã liên kết với tài khoản Google khác.",
             "GOOGLE_ACCOUNT_CONFLICT",
           );
+        const unverified = !user.emailVerifiedAt;
         user = await this.db.connectGoogle(
           user.id,
           profile.subject,
           profile.fullName,
         );
+        // Whoever registered with this email never proved they own it: drop their password
+        // (done in connectGoogle) and sign out every session they may hold.
+        if (unverified) await this.db.revokeAllRefreshTokens(user.id);
       } else {
         user = await this.db.createUser({
           id: randomUUID(),
@@ -278,6 +273,7 @@ export class AuthService {
       const error = await this.verifyOtpValue(user, "reset-password", code);
       if (error) return error;
       await this.db.updatePassword(user.id, passwordHash);
+      await this.db.markEmailVerified(user.id);
       await this.db.revokeAllRefreshTokens(user.id);
       return { success: true, message: "Đặt lại mật khẩu thành công." };
     });

@@ -164,9 +164,12 @@ export const openApiDocument = {
     "/Auth/register": {
       post: {
         tags: ["Auth"],
-        summary: "Register and send verification OTP",
+        summary: "Register and sign in immediately (no email verification)",
         responses: {
-          "201": { description: "Created" },
+          "201": {
+            description:
+              "Created and authenticated: public user fields and access token, with the refresh token in an HttpOnly Set-Cookie",
+          },
           "409": { description: "Email exists" },
         },
       },
@@ -174,7 +177,8 @@ export const openApiDocument = {
     "/Auth/verify-otp": {
       post: {
         tags: ["Auth"],
-        summary: "Verify email and issue tokens",
+        summary: "Verify email and issue tokens (legacy accounts only)",
+        deprecated: true,
         responses: { "200": { description: "Authenticated" } },
       },
     },
@@ -225,7 +229,8 @@ export const openApiDocument = {
     "/Auth/resend-otp": {
       post: {
         tags: ["Auth"],
-        summary: "Resend email verification OTP",
+        summary: "Resend email verification OTP (legacy accounts only)",
+        deprecated: true,
         responses: { "200": { description: "Accepted" } },
       },
     },

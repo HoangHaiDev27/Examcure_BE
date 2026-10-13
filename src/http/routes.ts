@@ -109,7 +109,7 @@ export function createApiRouter(
     ),
     async (req, res, next) => {
       try {
-        res.status(201).json(await auth.register(req.body));
+        sendAuth(res.status(201), await auth.register(req.body), config);
       } catch (e) {
         next(e);
       }

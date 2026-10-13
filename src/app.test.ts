@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { createApp } from "./app.js";
 import { loadConfig, type AppConfig } from "./config.js";
 import type { AppDatabase } from "./db/database.js";
+import { hashPassword } from "./lib/crypto.js";
 const config = loadConfig({
   NODE_ENV: "test",
   MONGODB_URI: process.env.TEST_MONGODB_URI!,
@@ -54,6 +55,20 @@ async function session(
   const tokens = await built.tokens.issue(user);
   return { user, ...tokens, cookie: `examcure_refresh=${tokens.refreshToken}` };
 }
+async function legacyPending(built: ReturnType<typeof setup>, email: string, password: string) {
+  return built.db.createUser({
+    id: randomUUID(),
+    email,
+    fullName: "Legacy User",
+    passwordHash: await hashPassword(password),
+    mssv: "",
+    schoolId: "fptu",
+    role: "student",
+    status: "pending",
+    googleSubject: null,
+    emailVerifiedAt: null,
+  });
+}
 const cookies = (response: request.Response) =>
   (response.headers["set-cookie"] as unknown as string[])[0]!.split(";")[0]!;
 
@@ -86,8 +101,9 @@ describe("ExamcureBe authentication", () => {
     });
     expect(JSON.stringify(response.body)).not.toContain(config.JWT_SECRET);
   });
-  it("registers with OTP, rejects unverified login and sets a private refresh cookie", async () => {
-    const { app } = setup();
+  it("registers, signs in immediately with a private refresh cookie and sends no OTP", async () => {
+    const built = setup(),
+      { app } = built;
     const registered = await request(app).post("/api/v1/Auth/register").send({
       email: "student@example.com",
       password: "secret123",
@@ -96,24 +112,19 @@ describe("ExamcureBe authentication", () => {
       schoolId: "hust",
     });
     expect(registered.status).toBe(201);
-    expect(registered.body.otp).toMatch(/^\d{6}$/);
-    expect(
-      (
-        await request(app)
-          .post("/api/v1/Auth/login")
-          .send({ email: "student@example.com", password: "secret123" })
-      ).status,
-    ).toBe(403);
-    const verified = await request(app)
-      .post("/api/v1/Auth/verify-otp")
-      .send({ email: "student@example.com", code: registered.body.otp });
-    expect(verified.status).toBe(200);
-    expect(verified.body).not.toHaveProperty("refreshToken");
-    expect(verified.headers["set-cookie"][0]).toContain("HttpOnly");
-    expect(verified.headers["set-cookie"][0]).toContain("Path=/api/v1/Auth");
+    expect(registered.body).not.toHaveProperty("otp");
+    expect(registered.body).not.toHaveProperty("refreshToken");
+    expect(registered.body).toMatchObject({ email: "student@example.com", role: "student" });
+    expect(registered.body.token).toEqual(expect.any(String));
+    expect(registered.headers["set-cookie"][0]).toContain("HttpOnly");
+    expect(registered.headers["set-cookie"][0]).toContain("Path=/api/v1/Auth");
+    const user = (await built.db.findUserByEmail("student@example.com"))!;
+    expect(user.status).toBe("active");
+    expect(user.emailVerifiedAt).toBeNull();
+    expect(await built.db.getLatestOtp(user.id, "verify-email")).toBeNull();
     const me = await request(app)
       .get("/api/v1/Users/me")
-      .auth(verified.body.token, { type: "bearer" });
+      .auth(registered.body.token, { type: "bearer" });
     expect(me.status).toBe(200);
     expect(me.body).toMatchObject({
       fullName: "Nguyễn Minh An",
@@ -121,6 +132,47 @@ describe("ExamcureBe authentication", () => {
       role: "student",
     });
     expect(me.body).not.toHaveProperty("passwordHash");
+    expect(
+      (
+        await request(app)
+          .post("/api/v1/Auth/refresh")
+          .set("Cookie", cookies(registered))
+          .send({})
+      ).status,
+    ).toBe(200);
+  });
+  it("rejects registering an active email and takes over a legacy pending account", async () => {
+    const built = setup(),
+      { app } = built;
+    const body = { email: "dup@example.com", password: "secret123", fullName: "First User" };
+    expect((await request(app).post("/api/v1/Auth/register").send(body)).status).toBe(201);
+    expect((await request(app).post("/api/v1/Auth/register").send(body)).status).toBe(409);
+    await legacyPending(built, "old@example.com", "old-secret");
+    const taken = await request(app)
+      .post("/api/v1/Auth/register")
+      .send({ email: "old@example.com", password: "new-secret1", fullName: "New Owner" });
+    expect(taken.status).toBe(201);
+    const user = (await built.db.findUserByEmail("old@example.com"))!;
+    expect(user).toMatchObject({ status: "active", fullName: "New Owner", emailVerifiedAt: null });
+    const login = (password: string) =>
+      request(app).post("/api/v1/Auth/login").send({ email: "old@example.com", password });
+    expect((await login("new-secret1")).status).toBe(200);
+    expect((await login("old-secret")).status).toBe(401);
+  });
+  it("activates a legacy pending account on login with the right password", async () => {
+    const built = setup(),
+      { app } = built;
+    await legacyPending(built, "pending@example.com", "secret123");
+    const login = (password: string) =>
+      request(app).post("/api/v1/Auth/login").send({ email: "pending@example.com", password });
+    expect((await login("wrong-secret")).status).toBe(401);
+    expect((await built.db.findUserByEmail("pending@example.com"))!.status).toBe("pending");
+    const ok = await login("secret123");
+    expect(ok.status).toBe(200);
+    expect(ok.body.token).toEqual(expect.any(String));
+    const user = (await built.db.findUserByEmail("pending@example.com"))!;
+    expect(user.status).toBe("active");
+    expect(user.emailVerifiedAt).toBeNull();
   });
   it("rotates cookie sessions atomically and rejects replay without invalidating other tabs", async () => {
     const built = setup(),
@@ -209,12 +261,10 @@ describe("ExamcureBe authentication", () => {
     ).toBe(401);
   });
   it("persists wrong OTP attempts and allows only one successful verification", async () => {
-    const { app } = setup(),
-      registered = await request(app).post("/api/v1/Auth/register").send({
-        email: "otp@example.com",
-        password: "secret123",
-        fullName: "OTP User",
-      });
+    const built = setup(),
+      { app } = built;
+    await legacyPending(built, "otp@example.com", "secret123");
+    const registered = { body: await built.auth.resendVerification("otp@example.com") };
     const wrong = registered.body.otp === "000000" ? "111111" : "000000";
     for (let i = 0; i < 5; i++)
       expect(
@@ -244,15 +294,14 @@ describe("ExamcureBe authentication", () => {
     expect(verified.map((r) => r.status).sort()).toEqual([200, 409]);
   });
   it("reset password consumes OTP and revokes all existing sessions", async () => {
-    const { app } = setup(),
-      registered = await request(app).post("/api/v1/Auth/register").send({
-        email: "reset@example.com",
-        password: "old-secret",
-        fullName: "Reset User",
-      });
-    const verified = await request(app)
-      .post("/api/v1/Auth/verify-otp")
-      .send({ email: "reset@example.com", code: registered.body.otp });
+    const built = setup(),
+      { app } = built;
+    const verified = await request(app).post("/api/v1/Auth/register").send({
+      email: "reset@example.com",
+      password: "old-secret",
+      fullName: "Reset User",
+    });
+    expect((await built.db.findUserByEmail("reset@example.com"))!.emailVerifiedAt).toBeNull();
     const forgot = await request(app)
       .post("/api/v1/Auth/forgot-password")
       .send({ email: "reset@example.com" });
@@ -265,6 +314,7 @@ describe("ExamcureBe authentication", () => {
         })
       ).status,
     ).toBe(200);
+    expect((await built.db.findUserByEmail("reset@example.com"))!.emailVerifiedAt).toBeTruthy();
     expect(
       (
         await request(app)
@@ -364,19 +414,19 @@ describe("ExamcureBe authentication", () => {
       ).status,
     ).toBe(400);
   });
-  it("Google activation discards a pending password chosen before email ownership was proved", async () => {
+  it("Google linking to an unverified password account drops the password and signs out its sessions", async () => {
     const built = setup();
-    await built.auth.register({
+    const registered = await request(built.app).post("/api/v1/Auth/register").send({
       email: "google@example.com",
       password: "attacker-secret",
       fullName: "Pretender",
-      mssv: "",
-      schoolId: "fptu",
     });
+    expect(registered.status).toBe(201);
     await built.auth.googleLogin("google-access");
-    expect(
-      (await built.db.findUserByEmail("google@example.com"))?.passwordHash,
-    ).toBeNull();
+    const user = (await built.db.findUserByEmail("google@example.com"))!;
+    expect(user.passwordHash).toBeNull();
+    expect(user.emailVerifiedAt).toBeTruthy();
+    expect(user.status).toBe("active");
     expect(
       (
         await request(built.app)
@@ -384,5 +434,34 @@ describe("ExamcureBe authentication", () => {
           .send({ email: "google@example.com", password: "attacker-secret" })
       ).status,
     ).toBe(401);
+    expect(
+      (
+        await request(built.app)
+          .post("/api/v1/Auth/refresh")
+          .set("Cookie", cookies(registered))
+          .send({})
+      ).status,
+    ).toBe(401);
+  });
+  it("Google linking to an already verified account keeps its password and sessions", async () => {
+    const built = setup();
+    const owner = await session(built, "student", "google@example.com");
+    await built.db.updatePassword(owner.user.id, await hashPassword("owner-secret"));
+    await built.auth.googleLogin("google-access");
+    expect(
+      (
+        await request(built.app)
+          .post("/api/v1/Auth/login")
+          .send({ email: "google@example.com", password: "owner-secret" })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await request(built.app)
+          .post("/api/v1/Auth/refresh")
+          .set("Cookie", owner.cookie)
+          .send({})
+      ).status,
+    ).toBe(200);
   });
 });
