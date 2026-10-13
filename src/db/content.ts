@@ -394,6 +394,171 @@ export class ContentRepository {
       };
     });
   }
+  private async attemptItems(rows: DataRow[]) {
+    const [exams, subjects] = await Promise.all([
+      this.db.find("exams", { id: { $in: [...new Set(rows.map((r) => r.exam_id))] } }),
+      this.db.find("subjects", {
+        id: { $in: [...new Set(rows.map((r) => r.subject_id))] },
+      }),
+    ]);
+    const e = new Map(exams.map((x) => [x.id as string, x])),
+      s = new Map(subjects.map((x) => [x.id as string, x]));
+    return rows.map((r) => ({
+      id: r.id,
+      examId: r.exam_id,
+      examTitle: e.get(r.exam_id)?.title ?? null,
+      subjectId: r.subject_id,
+      subjectCode: s.get(r.subject_id)
+        ? (s.get(r.subject_id)!.display_code ?? s.get(r.subject_id)!.code)
+        : null,
+      subjectName: s.get(r.subject_id)?.name ?? null,
+      score: r.score,
+      correctCount: r.correct_count,
+      totalCount: r.total_count,
+      submittedAt: r.submitted_at,
+    }));
+  }
+  async listMyAttempts(userId: string, limit: number, before?: string) {
+    const rows = await this.db.find(
+      "attempts",
+      {
+        user_id: userId,
+        ...(before ? { submitted_at: { $lt: before } } : {}),
+      },
+      { submitted_at: -1 },
+      limit,
+    );
+    const attempts = await this.attemptItems(rows);
+    return {
+      attempts,
+      nextBefore:
+        attempts.length === limit ? attempts[attempts.length - 1]!.submittedAt : null,
+    };
+  }
+  async dashboard(user: { id: string; schoolId: string }) {
+    const userId = user.id;
+    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+    const [totals, week, recent, perSubject] = await Promise.all([
+      this.db.aggregate("attempts", [
+        { $match: { user_id: userId } },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            avg: { $avg: "$score" },
+            subjects: { $addToSet: "$subject_id" },
+          },
+        },
+      ]),
+      this.db.count("attempts", { user_id: userId, submitted_at: { $gte: weekAgo } }),
+      this.db.find("attempts", { user_id: userId }, { submitted_at: -1 }, 8),
+      this.db.aggregate("attempts", [
+        { $match: { user_id: userId } },
+        {
+          $group: {
+            _id: "$subject_id",
+            avg: { $avg: "$score" },
+            last: { $max: "$submitted_at" },
+          },
+        },
+        { $sort: { avg: 1, last: -1 } },
+        { $limit: 1 },
+      ]),
+    ]);
+    const t = totals[0];
+    let rankPercentile: number | null = null;
+    if (t) {
+      const cohortUsers = await this.db.aggregate("users", [
+        { $match: { school_id: user.schoolId, status: "active" } },
+        { $project: { _id: 0, id: 1 } },
+      ]);
+      const means = await this.db.aggregate("attempts", [
+        { $match: { user_id: { $in: cohortUsers.map((u) => u.id) } } },
+        { $group: { _id: "$user_id", avg: { $avg: "$score" } } },
+      ]);
+      const mine = means.find((m) => m._id === userId);
+      if (mine && means.length >= 5) {
+        const rank = 1 + means.filter((m) => m.avg > mine.avg).length;
+        rankPercentile = Math.ceil((rank / means.length) * 100);
+      }
+    }
+    let weakestSubject = null;
+    if (perSubject[0]) {
+      const subject = await this.db.findOne("subjects", { id: perSubject[0]._id });
+      if (subject)
+        weakestSubject = {
+          subjectId: subject.id,
+          code: subject.display_code ?? subject.code,
+          name: subject.name,
+          averageScore: Math.round(perSubject[0].avg * 10) / 10,
+        };
+    }
+    return {
+      stats: {
+        totalAttempts: t?.total ?? 0,
+        averageScore: t ? Math.round(t.avg * 10) / 10 : null,
+        attemptsThisWeek: week,
+        subjectsInProgress: t?.subjects.length ?? 0,
+        rankPercentile,
+      },
+      trend: recent
+        .map((r) => ({ score: r.score, submittedAt: r.submitted_at }))
+        .reverse(),
+      recentAttempts: await this.attemptItems(recent.slice(0, 5)),
+      weakestSubject,
+    };
+  }
+  async wrongAnswers(userId: string, limit: number) {
+    const latest = await this.db.aggregate("attempts", [
+      { $match: { user_id: userId } },
+      { $sort: { submitted_at: -1 } },
+      { $unwind: "$answers" },
+      {
+        $group: {
+          _id: "$answers.question_id",
+          answer: { $first: "$answers" },
+          submitted_at: { $first: "$submitted_at" },
+          subject_id: { $first: "$subject_id" },
+        },
+      },
+      { $match: { "answer.is_correct": false } },
+      { $sort: { submitted_at: -1 } },
+      { $limit: limit * 2 },
+    ]);
+    const [questions, subjects] = await Promise.all([
+      this.db.find("questions", { id: { $in: latest.map((l) => l._id) } }),
+      this.db.find("subjects", {
+        id: { $in: [...new Set(latest.map((l) => l.subject_id))] },
+      }),
+    ]);
+    const qm = new Map(questions.map((q) => [q.id as string, q])),
+      sm = new Map(subjects.map((s) => [s.id as string, s]));
+    const text = (q: DataRow, pos: number | null) =>
+      pos == null
+        ? null
+        : ((q.question_options ?? []).find((o: DataRow) => o.position === pos)
+            ?.content ?? null);
+    return latest
+      .flatMap((l) => {
+        const q = qm.get(l._id);
+        if (!q) return [];
+        const s = sm.get(l.subject_id);
+        return [
+          {
+            questionId: l._id,
+            subjectId: l.subject_id,
+            subjectCode: s ? (s.display_code ?? s.code) : null,
+            subjectName: s?.name ?? null,
+            prompt: q.prompt,
+            yourAnswer: text(q, l.answer.selected_position),
+            correctAnswer: text(q, l.answer.correct_position),
+            explanation: q.explanation ?? null,
+            submittedAt: l.submitted_at,
+          },
+        ];
+      })
+      .slice(0, limit);
+  }
   async getAttempt(userId: string, attemptId: string) {
     const attempt = await this.db.findOne("attempts", {
       id: attemptId,

@@ -332,3 +332,18 @@ describe("student exams", () => {
     expect((await get(me.token, `/Subjects/${randomUUID()}/exams`)).status).toBe(404);
   });
 });
+
+describe("attempt rate limit", () => {
+  it("is keyed per user", async () => {
+    const a = await user(),
+      b = await user(),
+      s = await makeSubject(),
+      q = await makeQuestion(s),
+      e = await makeExam(s, [[q, 1]]);
+    const send = (t: string) =>
+      post(t, `/Exams/${e}/attempts`, { answers: [], spentSec: 1 });
+    for (let i = 0; i < 30; i++) expect((await send(a.token)).status).toBe(201);
+    expect((await send(a.token)).status).toBe(429);
+    expect((await send(b.token)).status).toBe(201);
+  }, 60000);
+});

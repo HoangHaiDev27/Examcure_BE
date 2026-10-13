@@ -81,13 +81,15 @@ export function createStudentRouter(
   });
   router.post(
     "/Exams/:examId/attempts",
+    authenticated,
     rateLimit({
       windowMs: 60_000,
       limit: 30,
       standardHeaders: "draft-8",
       legacyHeaders: false,
+      // Per user: production traffic shares a few proxy IPs.
+      keyGenerator: (req) => `attempt:${req.userId}`,
     }),
-    authenticated,
     async (req, res) => {
       const body = z
         .object({
@@ -113,6 +115,23 @@ export function createStudentRouter(
         );
     },
   );
+  const limitParam = z.coerce.number().int().min(1).max(50).default(20);
+  router.get("/Me/attempts", authenticated, async (req, res) => {
+    const q = z
+      .object({
+        limit: limitParam,
+        before: z.string().datetime().optional(),
+      })
+      .parse(req.query);
+    res.json(await repo.listMyAttempts(req.userId!, q.limit, q.before));
+  });
+  router.get("/Me/dashboard", authenticated, async (req, res) => {
+    res.json(await repo.dashboard(req.authUser!));
+  });
+  router.get("/Me/wrong-answers", authenticated, async (req, res) => {
+    const q = z.object({ limit: limitParam }).parse(req.query);
+    res.json({ items: await repo.wrongAnswers(req.userId!, q.limit) });
+  });
   router.get("/Attempts/:attemptId", authenticated, async (req, res) => {
     res.json({
       attempt: await repo.getAttempt(
