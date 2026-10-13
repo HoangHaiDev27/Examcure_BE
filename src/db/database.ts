@@ -82,10 +82,11 @@ export class AppDatabase {
     filter: Filter<AppDocument> = {},
     sort: Sort = {},
     limit = 0,
+    projection?: Record<string, 0 | 1>,
   ): Promise<DataRow[]> {
     await this.ready;
     return this.collection(name)
-      .find(filter, { ...this.options(), projection: { _id: 0 } })
+      .find(filter, { ...this.options(), projection: projection ? { _id: 0, ...projection } : { _id: 0 } })
       .sort(sort)
       .limit(limit)
       .toArray();

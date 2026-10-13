@@ -440,6 +440,18 @@ describe("publish, delete and locking", () => {
     expect((await send("patch", admin.token, `/Admin/questions/${draft.ids[0]}`, { status: "approved" })).status).toBe(200);
   });
 
+  it("keeps a rejected question locked after its exam is published", async () => {
+    const admin = await identity(),
+      { ids, examId } = await seedExam(["draft", "draft"]);
+    const patch = (status: string) => send("patch", admin.token, `/Admin/questions/${ids[1]}`, { status });
+    expect((await patch("rejected")).status).toBe(200);
+    expect((await send("post", admin.token, `/Admin/exams/${examId}/publish`)).status).toBe(200);
+    const undo = await patch("draft");
+    expect([undo.status, undo.body.code]).toEqual([409, "EXAM_PUBLISHED"]);
+    const detail = await get(admin.token, `/exams/${examId}`);
+    expect(detail.body.questions.map((q: any) => q.id)).toEqual([ids[0]]);
+  });
+
   it("removes and restores a question at its original position", async () => {
     const admin = await identity(),
       { ids, examId } = await seedExam(["draft", "draft", "draft"]);

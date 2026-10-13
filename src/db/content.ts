@@ -178,7 +178,7 @@ export class ContentRepository {
       ),
     ];
     const questions = ids.length
-      ? await this.db.find("questions", { id: { $in: ids } })
+      ? await this.db.find("questions", { id: { $in: ids } }, {}, 0, { id: 1, status: 1 })
       : [];
     const status = new Map(questions.map((q) => [q.id as string, q.status]));
     return exams.map((e) => {
@@ -986,7 +986,10 @@ export class ContentRepository {
       if (
         await this.db.findOne("exams", {
           status: "published",
-          "exam_questions.question_id": id,
+          $or: [
+            { "exam_questions.question_id": id },
+            ...(q.exam_id ? [{ id: q.exam_id }] : []),
+          ],
         })
       )
         throw new AppError(
