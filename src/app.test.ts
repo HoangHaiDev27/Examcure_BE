@@ -442,6 +442,13 @@ describe("ExamcureBe authentication", () => {
           .send({})
       ).status,
     ).toBe(401);
+    expect(
+      (
+        await request(built.app)
+          .get("/api/v1/Users/me")
+          .auth(registered.body.token, { type: "bearer" })
+      ).status,
+    ).toBe(401);
   });
   it("Google linking to an already verified account keeps its password and sessions", async () => {
     const built = setup();

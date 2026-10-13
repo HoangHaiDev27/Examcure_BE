@@ -97,19 +97,21 @@ export class AuthService {
   }): Promise<AuthResponse> {
     const email = input.email.trim().toLowerCase();
     const passwordHash = await hashPassword(input.password);
-    const user = await this.db.transaction(async () => {
+    return this.db.transaction(async () => {
       const existing = await this.db.findUserByEmail(email);
       if (existing?.status === "active")
         throw new AppError(409, "Email đã được sử dụng.", "EMAIL_EXISTS");
-      return existing
-        ? this.db.updatePendingUser(
+      // The session is issued in the same transaction, so a concurrent Google link
+      // that revokes this user's sessions cannot miss it.
+      const user = existing
+        ? await this.db.updatePendingUser(
             existing.id,
             input.fullName.trim(),
             passwordHash,
             input.mssv.trim(),
             input.schoolId,
           )
-        : this.db.createUser({
+        : await this.db.createUser({
             id: randomUUID(),
             email,
             fullName: input.fullName.trim(),
@@ -121,8 +123,8 @@ export class AuthService {
             googleSubject: null,
             emailVerifiedAt: null,
           });
+      return this.authResponse(user);
     });
-    return this.authResponse(user);
   }
 
   async resendVerification(emailValue: string) {

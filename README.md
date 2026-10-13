@@ -27,7 +27,9 @@ cookie thuộc origin FE.
 
 ## Auth và admin
 
-- `/Auth/register`, `/Auth/verify-otp`, `/Auth/resend-otp`: OTP xác thực email.
+- `/Auth/register`: đăng ký và đăng nhập ngay (trả access token + refresh cookie
+  HttpOnly như login), không cần xác thực email. `/Auth/verify-otp`,
+  `/Auth/resend-otp` chỉ còn cho tài khoản cũ chưa xác thực (legacy).
 - `/Auth/login`, `/Auth/refresh`, `/Auth/logout`: access JWT và refresh cookie
   HttpOnly; refresh token không trả trong JSON. Logout/reset vô hiệu hóa phiên
   trên server. Refresh giữ session ID để các tab khác không mất access token.
