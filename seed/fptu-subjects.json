@@ -1,0 +1,3990 @@
+{
+  "schoolCode": "fptu",
+  "subjects": [
+    {
+      "code": "ASI101",
+      "name": "Học phần ASI101",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "CEA201",
+      "name": "Học phần CEA201",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "CSI104",
+      "name": "Học phần CSI104",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "CSI105",
+      "name": "Học phần CSI105",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "CSI106",
+      "name": "Học phần CSI106",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "DRS102",
+      "name": "Học phần DRS102",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "DTG111",
+      "name": "Học phần DTG111",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "EAW211",
+      "name": "Học phần EAW211",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "ECN101",
+      "name": "Học phần ECN101",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "ECO102",
+      "name": "Học phần ECO102",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "ECO111",
+      "name": "Kinh tế học đại cương",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "EPK201",
+      "name": "Học phần EPK201",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "EPK202",
+      "name": "Học phần EPK202",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "ENG302c",
+      "name": "Học phần ENG302c",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "ENH301",
+      "name": "Học phần ENH301",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "ENM112c",
+      "name": "Học phần ENM112c",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "ENM301",
+      "name": "Học phần ENM301",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "ENM302",
+      "name": "Học phần ENM302",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "ENP102",
+      "name": "Học phần ENP102",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "FMM101",
+      "name": "Học phần FMM101",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "HMO102",
+      "name": "Học phần HMO102",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "JPD116",
+      "name": "Học phần JPD116",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "JPD126",
+      "name": "Học phần JPD126",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "KRL112",
+      "name": "Học phần KRL112",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "LAE101",
+      "name": "Học phần LAE101",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "MAC102",
+      "name": "Học phần MAC102",
+      "faculty": "Toán & khoa học cơ bản",
+      "kind": "math",
+      "durationMin": 90,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "MAE101",
+      "name": "Toán kỹ thuật",
+      "faculty": "Toán & khoa học cơ bản",
+      "kind": "math",
+      "durationMin": 90,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "MED201",
+      "name": "Học phần MED201",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "MGT103",
+      "name": "Nhập môn Quản trị học",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "MKT101",
+      "name": "Học phần MKT101",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "PFP191",
+      "name": "Học phần PFP191",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "PRF192",
+      "name": "Kỹ thuật lập trình",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "SDI101m",
+      "name": "Học phần SDI101m",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "SSC102",
+      "name": "Học phần SSC102",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "SSL101c",
+      "name": "Kỹ năng học tập đại học",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        1
+      ]
+    },
+    {
+      "code": "ACC101",
+      "name": "Nguyên lý kế toán",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "AET101",
+      "name": "Học phần AET101",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "AET102",
+      "name": "Học phần AET102",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "AIG201c",
+      "name": "Học phần AIG201c",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "AIG202c",
+      "name": "Học phần AIG202c",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "CMC201",
+      "name": "Học phần CMC201",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "CPP201",
+      "name": "Học phần CPP201",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "CSD203",
+      "name": "Học phần CSD203",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "DRP101",
+      "name": "Học phần DRP101",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "DTG201",
+      "name": "Học phần DTG201",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "EAL201",
+      "name": "Học phần EAL201",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "EAW221",
+      "name": "Học phần EAW221",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "ECB101",
+      "name": "Học phần ECB101",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "ECN211",
+      "name": "Học phần ECN211",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "ECO121",
+      "name": "Học phần ECO121",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "ELC201",
+      "name": "Học phần ELC201",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "ENH401",
+      "name": "Học phần ENH401",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "ENM211c",
+      "name": "Học phần ENM211c",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "ENM401",
+      "name": "Học phần ENM401",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "EVN202",
+      "name": "Học phần EVN202",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "HOM200",
+      "name": "Học phần HOM200",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "HOM202",
+      "name": "Học phần HOM202",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "HOM301",
+      "name": "Học phần HOM301",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "IAO201",
+      "name": "Học phần IAO201",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "IAO202",
+      "name": "Học phần IAO202",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "JPD216",
+      "name": "Học phần JPD216",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "JPD226",
+      "name": "Học phần JPD226",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "KRL122",
+      "name": "Học phần KRL122",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "LAB221c",
+      "name": "Học phần LAB221c",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "LITG202",
+      "name": "Học phần LITG202",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "MAD101",
+      "name": "Toán rời rạc",
+      "faculty": "Toán & khoa học cơ bản",
+      "kind": "math",
+      "durationMin": 90,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "MMK101",
+      "name": "Học phần MMK101",
+      "faculty": "Toán & khoa học cơ bản",
+      "kind": "math",
+      "durationMin": 90,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "MMP201",
+      "name": "Học phần MMP201",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "NWC203c",
+      "name": "Mạng máy tính",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "NWC204",
+      "name": "Học phần NWC204",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "OPB102",
+      "name": "Học phần OPB102",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "OSC202",
+      "name": "Học phần OSC202",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "PRN212",
+      "name": "Học phần PRN212",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "PRO191",
+      "name": "Học phần PRO191",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "PRO192",
+      "name": "Lập trình hướng đối tượng",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "OOP201",
+      "name": "Học phần OOP201",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "SCC201",
+      "name": "Học phần SCC201",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "SSC101",
+      "name": "Học phần SSC101",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "SSG104",
+      "name": "Kỹ năng giao tiếp và làm việc nhóm",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "basic",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "TAB201",
+      "name": "Học phần TAB201",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        2
+      ]
+    },
+    {
+      "code": "ACC305",
+      "name": "Học phần ACC305",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "ADV201m",
+      "name": "Học phần ADV201m",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "AFA201",
+      "name": "Học phần AFA201",
+      "faculty": "Toán & khoa học cơ bản",
+      "kind": "math",
+      "durationMin": 90,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "ANS201",
+      "name": "Học phần ANS201",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "BDM201",
+      "name": "Học phần BDM201",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "BKG201",
+      "name": "Học phần BKG201",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "BUF201",
+      "name": "Học phần BUF201",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "CAA201",
+      "name": "Học phần CAA201",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "CAD201",
+      "name": "Học phần CAD201",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "CHI411",
+      "name": "Học phần CHI411",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "CSD201",
+      "name": "Cấu trúc dữ liệu & Giải thuật",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "DBI202",
+      "name": "Cơ sở dữ liệu",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "DMA301m",
+      "name": "Học phần DMA301m",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "DTG302",
+      "name": "Học phần DTG302",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "DTG303",
+      "name": "Học phần DTG303",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "ECN221",
+      "name": "Học phần ECN221",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "ECO201",
+      "name": "Học phần ECO201",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "ENM221c",
+      "name": "Học phần ENM221c",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "ERW411",
+      "name": "Học phần ERW411",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "FIN201",
+      "name": "Học phần FIN201",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "FIN202",
+      "name": "Thị trường & Định chế tài chính",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "FIN301",
+      "name": "Học phần FIN301",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "GDF102",
+      "name": "Học phần GDF102",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "HOD102",
+      "name": "Học phần HOD102",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "HRM201c",
+      "name": "Học phần HRM201c",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "HRM202c",
+      "name": "Học phần HRM202c",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "HSK200",
+      "name": "Học phần HSK200",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "IBC201",
+      "name": "Học phần IBC201",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "IBI101",
+      "name": "Học phần IBI101",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "ITE305c",
+      "name": "Học phần ITE305c",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "JJJ301",
+      "name": "Học phần JJJ301",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "JPD113",
+      "name": "Học phần JPD113",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "JPD326",
+      "name": "Học phần JPD326",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "KRL212",
+      "name": "Học phần KRL212",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "KRL222",
+      "name": "Học phần KRL222",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "LAB211",
+      "name": "Học phần LAB211",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "LIT301",
+      "name": "Học phần LIT301",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "MAI391",
+      "name": "Học phần MAI391",
+      "faculty": "Toán & khoa học cơ bản",
+      "kind": "math",
+      "durationMin": 90,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "MKT201",
+      "name": "Nguyên lý Marketing",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "MKT304",
+      "name": "Học phần MKT304",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "MKT318m",
+      "name": "Học phần MKT318m",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "MMP101",
+      "name": "Học phần MMP101",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "NWC303",
+      "name": "Học phần NWC303",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "PFD201",
+      "name": "Học phần PFD201",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "RMC201",
+      "name": "Học phần RMC201",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "SDP201",
+      "name": "Học phần SDP201",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "SEM101",
+      "name": "Học phần SEM101",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "SSG302c",
+      "name": "Học phần SSG302c",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "TTG201",
+      "name": "Học phần TTG201",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "VCM202",
+      "name": "Học phần VCM202",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "VNC104",
+      "name": "Học phần VNC104",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "WED201c",
+      "name": "Học phần WED201c",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        3
+      ]
+    },
+    {
+      "code": "ACC302",
+      "name": "Học phần ACC302",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "AIT303m",
+      "name": "Học phần AIT303m",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "ANB401",
+      "name": "Học phần ANB401",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "ANS301",
+      "name": "Học phần ANS301",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "BCI201c",
+      "name": "Học phần BCI201c",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "CCC201",
+      "name": "Học phần CCC201",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "CHI421",
+      "name": "Học phần CHI421",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "CHN111",
+      "name": "Học phần CHN111",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "CSP201m",
+      "name": "Học phần CSP201m",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "DAP391m",
+      "name": "Học phần DAP391m",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "DRD204",
+      "name": "Học phần DRD204",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "DXD391c",
+      "name": "Học phần DXD391c",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "DXE291c",
+      "name": "Học phần DXE291c",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "ECC301c",
+      "name": "Học phần ECC301c",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "EDT202c",
+      "name": "Học phần EDT202c",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "ELP311c",
+      "name": "Học phần ELP311c",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "ERW421",
+      "name": "Học phần ERW421",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "FIN310",
+      "name": "Học phần FIN310",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "FBM201",
+      "name": "Học phần FBM201",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "FIN303",
+      "name": "Học phần FIN303",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "GDF201",
+      "name": "Học phần GDF201",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "IFB301",
+      "name": "Học phần IFB301",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "IMC301c",
+      "name": "Học phần IMC301c",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "IOT102",
+      "name": "Học phần IOT102",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "IPR102",
+      "name": "Học phần IPR102",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "ITA203c",
+      "name": "Học phần ITA203c",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "JPD301",
+      "name": "Học phần JPD301",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "JPD123",
+      "name": "Học phần JPD123",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "JPD336",
+      "name": "Học phần JPD336",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "JPD346",
+      "name": "Học phần JPD346",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "KRG301",
+      "name": "Học phần KRG301",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "KRL312",
+      "name": "Học phần KRL312",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "KRL322",
+      "name": "Học phần KRL322",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "MAS202",
+      "name": "Học phần MAS202",
+      "faculty": "Toán & khoa học cơ bản",
+      "kind": "math",
+      "durationMin": 90,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "MAS291",
+      "name": "Xác suất thống kê",
+      "faculty": "Toán & khoa học cơ bản",
+      "kind": "math",
+      "durationMin": 90,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "MKT202",
+      "name": "Học phần MKT202",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "MKT328m",
+      "name": "Học phần MKT328m",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "MPL201",
+      "name": "Học phần MPL201",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "MSM201c",
+      "name": "Học phần MSM201c",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "OSP201",
+      "name": "Học phần OSP201",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "PIA201c",
+      "name": "Học phần PIA201c",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "PRC391c",
+      "name": "Học phần PRC391c",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "PRC392c",
+      "name": "Học phần PRC392c",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "PRE202",
+      "name": "Học phần PRE202",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "PRJ301",
+      "name": "Học phần PRJ301",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "PRJ302",
+      "name": "Học phần PRJ302",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "PST202",
+      "name": "Học phần PST202",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "SCM201",
+      "name": "Học phần SCM201",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "SCM202",
+      "name": "Học phần SCM202",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "SSM201",
+      "name": "Học phần SSM201",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "SSP201",
+      "name": "Học phần SSP201",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "SWE201c",
+      "name": "Nhập môn Kỹ nghệ phần mềm",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "TPG203",
+      "name": "Học phần TPG203",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "TTD202",
+      "name": "Học phần TTD202",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "TTM201",
+      "name": "Học phần TTM201",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "VDP201",
+      "name": "Học phần VDP201",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "WMC201",
+      "name": "Học phần WMC201",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        4
+      ]
+    },
+    {
+      "code": "CHN113",
+      "name": "Học phần CHN113",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "CHN122",
+      "name": "Học phần CHN122",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "CHN123",
+      "name": "Học phần CHN123",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "CRY303c",
+      "name": "Học phần CRY303c",
+      "faculty": "Toán & khoa học cơ bản",
+      "kind": "math",
+      "durationMin": 90,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "CSP301",
+      "name": "Học phần CSP301",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "DBS401",
+      "name": "Học phần DBS401",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "DMS301m",
+      "name": "Học phần DMS301m",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "DPL301m",
+      "name": "Học phần DPL301m",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "DPL302m",
+      "name": "Học phần DPL302m",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "DTA301",
+      "name": "Học phần DTA301",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "DTG102",
+      "name": "Học phần DTG102",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "DWP301c",
+      "name": "Học phần DWP301c",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "ECO301",
+      "name": "Học phần ECO301",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "ENR301",
+      "name": "Học phần ENR301",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "ELP321c",
+      "name": "Học phần ELP321c",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "EIT301",
+      "name": "Học phần EIT301",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "FER201m",
+      "name": "Lập trình Front-End với React",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "FER202",
+      "name": "Học phần FER202",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "FIM302c",
+      "name": "Học phần FIM302c",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "FIN402",
+      "name": "Học phần FIN402",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "FRS301",
+      "name": "Học phần FRS301",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "HOA102",
+      "name": "Học phần HOA102",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "IAA202",
+      "name": "Học phần IAA202",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "IAM302",
+      "name": "Học phần IAM302",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "IEP301",
+      "name": "Học phần IEP301",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "IIP301",
+      "name": "Học phần IIP301",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "ISM302",
+      "name": "Học phần ISM302",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "ISP392",
+      "name": "Học phần ISP392",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "ITA301",
+      "name": "Học phần ITA301",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "ITE302c",
+      "name": "Học phần ITE302c",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "JBI301",
+      "name": "Học phần JBI301",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "JBT301",
+      "name": "Học phần JBT301",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "JIG301",
+      "name": "Học phần JIG301",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "JJB391",
+      "name": "Học phần JJB391",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "JPE301",
+      "name": "Học phần JPE301",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "JSC301",
+      "name": "Học phần JSC301",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "KOR311",
+      "name": "Học phần KOR311",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "MCO201",
+      "name": "Học phần MCO201",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "MKT205c",
+      "name": "Học phần MKT205c",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "MKT208c",
+      "name": "Học phần MKT208c",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "PRN211",
+      "name": "Lập trình ứng dụng với .NET",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "PRN292c",
+      "name": "Học phần PRN292c",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "PRP201c",
+      "name": "Học phần PRP201c",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 75,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "RES213",
+      "name": "Học phần RES213",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "RES301",
+      "name": "Học phần RES301",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "RMB302",
+      "name": "Học phần RMB302",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "SAL301",
+      "name": "Học phần SAL301",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "SAP341",
+      "name": "Học phần SAP341",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "SCM301m",
+      "name": "Học phần SCM301m",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "SEG301m",
+      "name": "Học phần SEG301m",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "SSB201",
+      "name": "Học phần SSB201",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "SWP391",
+      "name": "Học phần SWP391",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "SWR302",
+      "name": "Học phần SWR302",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "SWT301",
+      "name": "Học phần SWT301",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "TMG301m",
+      "name": "Học phần TMG301m",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "TTM202",
+      "name": "Học phần TTM202",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "TTM203",
+      "name": "Học phần TTM203",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "WBS200",
+      "name": "Học phần WBS200",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        5
+      ]
+    },
+    {
+      "code": "ENW492c",
+      "name": "Học phần ENW492c",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        6
+      ]
+    },
+    {
+      "code": "NLP301c",
+      "name": "Xử lý ngôn ngữ tự nhiên",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        6
+      ]
+    },
+    {
+      "code": "OJT202",
+      "name": "Thực tập doanh nghiệp",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        6
+      ]
+    },
+    {
+      "code": "ADS301m",
+      "name": "Học phần ADS301m",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "AIL302m",
+      "name": "Học máy",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "AIT301",
+      "name": "Học phần AIT301",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "BDI302c",
+      "name": "Học phần BDI302c",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "BRA301",
+      "name": "Học phần BRA301",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "CHN132",
+      "name": "Học phần CHN132",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "DAT301m",
+      "name": "Học phần DAT301m",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "ELT401",
+      "name": "Học phần ELT401",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "EVN201",
+      "name": "Học phần EVN201",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "EXE101",
+      "name": "Học phần EXE101",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "HOD401",
+      "name": "Học phần HOD401",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "JAP301",
+      "name": "Học phần JAP301",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "IAW301",
+      "name": "Học phần IAW301",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "IIV301",
+      "name": "Học phần IIV301",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "IMP301",
+      "name": "Học phần IMP301",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "ISC301",
+      "name": "Học phần ISC301",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "ISG302",
+      "name": "Học phần ISG302",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "ITS301c",
+      "name": "Học phần ITS301c",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "JPD316",
+      "name": "Học phần JPD316",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "JIT301",
+      "name": "Học phần JIT301",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7,
+        8
+      ]
+    },
+    {
+      "code": "KMS301",
+      "name": "Học phần KMS301",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "KOR321",
+      "name": "Học phần KOR321",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "LAW102",
+      "name": "Học phần LAW102",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "LAW201",
+      "name": "Học phần LAW201",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "LOG311",
+      "name": "Học phần LOG311",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "MKT209m",
+      "name": "Học phần MKT209m",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "MKT309m",
+      "name": "Học phần MKT309m",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "PRM392",
+      "name": "Học phần PRM392",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "PRN221",
+      "name": "Học phần PRN221",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "PRU211m",
+      "name": "Học phần PRU211m",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "PRU212",
+      "name": "Học phần PRU212",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "RMC301",
+      "name": "Học phần RMC301",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "RMC301m",
+      "name": "Học phần RMC301m",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "SAP311",
+      "name": "Học phần SAP311",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "SAP331",
+      "name": "Học phần SAP331",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "SDN301m",
+      "name": "Học phần SDN301m",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "SSN301",
+      "name": "Học phần SSN301",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "SWC201",
+      "name": "Học phần SWC201",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "SWD391",
+      "name": "Học phần SWD391",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "SWD392",
+      "name": "Học phần SWD392",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "SYB302c",
+      "name": "Học phần SYB302c",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "WBS220",
+      "name": "Học phần WBS220",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "WDU202c",
+      "name": "Học phần WDU202c",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        7
+      ]
+    },
+    {
+      "code": "AID301",
+      "name": "Trí tuệ nhân tạo",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "BKG302",
+      "name": "Học phần BKG302",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "BPS301",
+      "name": "Học phần BPS301",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "CPV301",
+      "name": "Học phần CPV301",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "DBM301",
+      "name": "Học phần DBM301",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "DBW301",
+      "name": "Học phần DBW301",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "DSS301",
+      "name": "Học phần DSS301",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "EXE201",
+      "name": "Học phần EXE201",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "IFT201c",
+      "name": "Học phần IFT201c",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "IJS401",
+      "name": "Học phần IJS401",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "JIT401",
+      "name": "Học phần JIT401",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "JIT491",
+      "name": "Học phần JIT491",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "KOR411",
+      "name": "Học phần KOR411",
+      "faculty": "Ngoại ngữ",
+      "kind": "english",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "LOG321",
+      "name": "Học phần LOG321",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "MKT301",
+      "name": "Học phần MKT301",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "MLN101",
+      "name": "Học phần MLN101",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "MLN111",
+      "name": "Triết học Mác – Lênin",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "MLN122",
+      "name": "Học phần MLN122",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "MMA301",
+      "name": "Học phần MMA301",
+      "faculty": "Thiết kế & truyền thông",
+      "kind": "theory",
+      "durationMin": 75,
+      "questionCount": 35,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "PMG201c",
+      "name": "Học phần PMG201c",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "PMG202c",
+      "name": "Học phần PMG202c",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "PRN231",
+      "name": "Học phần PRN231",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "PRU221",
+      "name": "Học phần PRU221",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "PRU221m",
+      "name": "Học phần PRU221m",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "REL301m",
+      "name": "Học phần REL301m",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "RMB301",
+      "name": "Học phần RMB301",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "SAP321",
+      "name": "Học phần SAP321",
+      "faculty": "Kinh doanh",
+      "kind": "econ",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "SPM401",
+      "name": "Học phần SPM401",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "WDP301",
+      "name": "Học phần WDP301",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "WDU203c",
+      "name": "Học phần WDU203c",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        8
+      ]
+    },
+    {
+      "code": "HCM201",
+      "name": "Tư tưởng Hồ Chí Minh",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        9
+      ]
+    },
+    {
+      "code": "HCM202",
+      "name": "Học phần HCM202",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        9
+      ]
+    },
+    {
+      "code": "ISP490",
+      "name": "Học phần ISP490",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        9
+      ]
+    },
+    {
+      "code": "MLN131",
+      "name": "Học phần MLN131",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        9
+      ]
+    },
+    {
+      "code": "SEO102",
+      "name": "Học phần SEO102",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        9
+      ]
+    },
+    {
+      "code": "SEO201c",
+      "name": "Học phần SEO201c",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        9
+      ]
+    },
+    {
+      "code": "SEP490",
+      "name": "Đồ án tốt nghiệp",
+      "faculty": "Công nghệ thông tin",
+      "kind": "code",
+      "durationMin": 90,
+      "questionCount": 40,
+      "difficulty": "advanced",
+      "curriculumTerms": [
+        9
+      ]
+    },
+    {
+      "code": "VNR201",
+      "name": "Học phần VNR201",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        9
+      ]
+    },
+    {
+      "code": "VNR202",
+      "name": "Học phần VNR202",
+      "faculty": "Kiến thức nền tảng",
+      "kind": "theory",
+      "durationMin": 60,
+      "questionCount": 40,
+      "difficulty": "medium",
+      "curriculumTerms": [
+        9
+      ]
+    }
+  ]
+}

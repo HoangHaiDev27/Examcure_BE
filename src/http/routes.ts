@@ -15,6 +15,7 @@ import { integrationStatus } from "../integrations/env.js";
 import { createAdminRouter } from "./admin.routes.js";
 import { createAdminBootstrapRouter } from "./admin-bootstrap.routes.js";
 import { createMaterialsRouter } from "./materials.routes.js";
+import { createStudentRouter } from "./student.routes.js";
 
 const email = z.string().trim().email().max(254);
 const password = z.string().min(6).max(128);
@@ -62,6 +63,8 @@ export function createApiRouter(
     createAdminRouter(tokens, db, storage, config),
   );
   router.use("/Materials", createMaterialsRouter(tokens, db, storage, config));
+
+  router.use(createStudentRouter(tokens, db));
 
   const authenticated = requireAuth(tokens, db);
 

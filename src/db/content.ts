@@ -10,6 +10,7 @@ const COLLECTIONS = new Set([
   "generation_runs",
   "questions",
   "exams",
+  "attempts",
   "audit_logs",
 ]);
 const now = () => new Date().toISOString();
@@ -214,6 +215,37 @@ export class ContentRepository {
           mcreated: m.created_at,
         })),
     );
+  }
+  async listSubjects(
+    schoolCode: string,
+    userId: string,
+    code?: string,
+  ): Promise<DataRow[]> {
+    const subjects = await this.db.find("subjects", {
+      school_code: schoolCode.toLowerCase(),
+      ...(code ? { code: code.toUpperCase() } : {}),
+    });
+    if (!subjects.length) return [];
+    const ids = subjects.map((s) => s.id);
+    const [exams, attempts] = await Promise.all([
+      this.db.find("exams", { subject_id: { $in: ids }, status: "published" }),
+      this.db.find(
+        "attempts",
+        { user_id: userId, subject_id: { $in: ids } },
+        { submitted_at: -1 },
+      ),
+    ]);
+    const published = new Map<string, number>(),
+      last = new Map<string, number>();
+    for (const e of exams)
+      published.set(e.subject_id, (published.get(e.subject_id) ?? 0) + 1);
+    for (const a of attempts)
+      if (!last.has(a.subject_id)) last.set(a.subject_id, a.score);
+    return subjects.map((s) => ({
+      ...s,
+      published_exam_count: published.get(s.id) ?? 0,
+      last_score: last.get(s.id) ?? null,
+    }));
   }
   async changeRole(actor: string, userId: string, role: string) {
     return this.db.transaction(async () => {
