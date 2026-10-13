@@ -9,6 +9,7 @@ const indexes: Record<string, IndexDescription[]> = {
       partialFilterExpression: { google_subject: { $type: "string" } },
     },
     { key: { role: 1, status: 1 } },
+    { key: { school_id: 1, status: 1 } },
   ],
   otp_codes: [
     { key: { user_id: 1, purpose: 1, created_at: -1 } },
@@ -40,7 +41,11 @@ const indexes: Record<string, IndexDescription[]> = {
   attempts: [
     { key: { user_id: 1, submitted_at: -1 } },
     { key: { user_id: 1, subject_id: 1, submitted_at: -1 } },
-    { key: { school_code: 1, user_id: 1 } },
+    {
+      key: { user_id: 1, client_attempt_id: 1 },
+      unique: true,
+      partialFilterExpression: { client_attempt_id: { $type: "string" } },
+    },
     { key: { exam_id: 1 } },
   ],
   audit_logs: [{ key: { created_at: -1 } }],

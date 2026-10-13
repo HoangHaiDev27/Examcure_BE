@@ -352,6 +352,10 @@ export const openApiDocument = {
           "200": ok("Ready material versions", {
             type: "object",
             properties: {
+              truncated: {
+                type: "boolean",
+                description: "School-wide list only: true when capped at 200",
+              },
               materials: {
                 type: "array",
                 items: {
@@ -525,12 +529,27 @@ export const openApiDocument = {
                     },
                   },
                   spentSec: { type: "integer", minimum: 0, maximum: 86400 },
+                  clientAttemptId: {
+                    type: "string",
+                    format: "uuid",
+                    description:
+                      "Idempotency key; resubmitting it returns the existing attempt with 200",
+                  },
                 },
               },
             },
           },
         },
         responses: {
+          "200": ok("Existing attempt for this clientAttemptId", {
+            type: "object",
+            properties: {
+              attemptId: { type: "string", format: "uuid" },
+              score: { type: "number" },
+              correctCount: { type: "integer" },
+              totalCount: { type: "integer" },
+            },
+          }),
           "201": ok("Attempt graded", {
             type: "object",
             properties: {

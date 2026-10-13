@@ -102,17 +102,15 @@ export function createStudentRouter(
             )
             .max(200),
           spentSec: z.number().int().min(0).max(86400),
+          clientAttemptId: z.string().uuid().optional(),
         })
         .parse(req.body);
-      res
-        .status(201)
-        .json(
-          await repo.submitAttempt(
-            req.userId!,
-            uuid.parse(req.params.examId),
-            body,
-          ),
-        );
+      const { created, ...result } = await repo.submitAttempt(
+        req.userId!,
+        uuid.parse(req.params.examId),
+        body,
+      );
+      res.status(created ? 201 : 200).json(result);
     },
   );
   const limitParam = z.coerce.number().int().min(1).max(50).default(20);

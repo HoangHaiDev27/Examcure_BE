@@ -42,19 +42,19 @@ export async function seedSubjects(
   if (new Set(keys).size !== keys.length)
     throw new Error("Seed contains duplicate subject codes");
   const repo = new ContentRepository(db);
-  return db.transaction(async () => {
+  // Dry runs use plain reads only: no transaction, so the global business lock is never touched.
+  const run = async () => {
     const result: SubjectSeedResult = {
       inserted: 0,
       updated: 0,
       unchanged: 0,
     };
+    // Match case-insensitively: load the school's subjects once and compare upper-cased codes.
     const existing = new Map(
-      (
-        await db.find("subjects", {
-          school_code: schoolCode,
-          code: { $in: keys },
-        })
-      ).map((row) => [row.code as string, row]),
+      (await db.find("subjects", { school_code: schoolCode })).map((row) => [
+        String(row.code).toUpperCase(),
+        row,
+      ]),
     );
     for (const s of data.subjects) {
       const code = s.code.toUpperCase(),
@@ -106,5 +106,6 @@ export async function seedSubjects(
         created_at: new Date().toISOString(),
       });
     return result;
-  });
+  };
+  return dryRun ? run() : db.transaction(run);
 }

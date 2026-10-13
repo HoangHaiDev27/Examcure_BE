@@ -19,7 +19,15 @@ try {
   const input = JSON.parse(await readFile(file, "utf8"));
   console.log(
     JSON.stringify(
-      { dryRun, ...(await seedSubjects(db, input, { dryRun })) },
+      {
+        dryRun,
+        ...(await seedSubjects(db, input, { dryRun })),
+        ...(dryRun
+          ? {
+              note: "dry run: read-only, no transaction opened and no data written (indexes are ensured at connect, same as app startup)",
+            }
+          : {}),
+      },
       null,
       2,
     ),

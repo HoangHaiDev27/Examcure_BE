@@ -43,8 +43,11 @@ export function createMaterialsRouter(
       })
       .parse(req.query);
     if (body.subjectCode === undefined) {
-      const rows = await repo.listSchoolMaterials(body.schoolCode);
+      const { rows, truncated } = await repo.listSchoolMaterials(
+        body.schoolCode,
+      );
       res.json({
+        truncated,
         materials: rows.map((v) => ({
           id: v.mid,
           title: v.title,

@@ -266,3 +266,34 @@ describe("GET /Subjects", () => {
     });
   });
 });
+
+describe("seed matching and dry run", () => {
+  it("fills an existing mixed-case subject instead of duplicating it", async () => {
+    await repo.insert("subjects", {
+      school_code: "fptu",
+      code: "ENG302c",
+      name: "Admin",
+      description: null,
+      created_by: null,
+      created_at: new Date().toISOString(),
+    });
+    const r = await seedSubjects(built.db, seed([entry({ code: "ENG302c" })]));
+    expect(r).toEqual({ inserted: 0, updated: 1, unchanged: 0 });
+    const rows = await built.db.find("subjects", {});
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ code: "ENG302c", name: "Admin", display_code: "ENG302c" });
+  });
+  it("dry run does not touch the business lock", async () => {
+    const lock = async () =>
+      (await (built.db as any).client
+        .db((built.db as any).databaseName)
+        .collection("system_state")
+        .findOne({ _id: "business-lock" })).revision;
+    await built.db.count("subjects");
+    const before = await lock();
+    await seedSubjects(built.db, seed([entry()]), { dryRun: true });
+    expect(await lock()).toBe(before);
+    await seedSubjects(built.db, seed([entry()]));
+    expect(await lock()).toBe(before + 1);
+  });
+});

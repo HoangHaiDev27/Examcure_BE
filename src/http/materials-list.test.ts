@@ -126,8 +126,19 @@ describe("GET /Materials", () => {
       version: { version_number: 1, mime_type: "application/vnd.test" },
     });
     expect(r.body.materials[1].version.version_number).toBe(2);
-    expect((await get(t, "schoolCode=nope")).body).toEqual({ materials: [] });
+    expect(r.body.truncated).toBe(false);
+    expect((await get(t, "schoolCode=nope")).body).toEqual({ materials: [], truncated: false });
   });
+
+  it("flags truncation at 200", async () => {
+    const t = await token(),
+      a = await subject("fptu", "PRF192");
+    for (let i = 0; i < 201; i++)
+      await material(a, "m" + i, new Date(2026, 0, 1, 0, 0, i).toISOString(), [[1, "ready"]]);
+    const r = await get(t, "schoolCode=fptu");
+    expect(r.body.materials).toHaveLength(200);
+    expect(r.body.truncated).toBe(true);
+  }, 60000);
 
   it("keeps per-subject behaviour: every ready version", async () => {
     const t = await token(),

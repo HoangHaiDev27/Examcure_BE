@@ -239,9 +239,9 @@ describe("student exams", () => {
       ])).status,
     ).toBe(400);
     expect((await send([{ questionId: randomUUID(), selectedPosition: 0 }])).status).toBe(400);
-    expect((await send([{ questionId: x, selectedPosition: 0 }])).status).toBe(400);
+    expect((await send([{ questionId: x, selectedPosition: 0 }])).status).toBe(201); // rejected-after-serving answers are dropped
     expect((await send([{ questionId: a, selectedPosition: 4 }])).status).toBe(400);
-    expect(await built.db.count("attempts")).toBe(0);
+    expect(await built.db.count("attempts")).toBe(1);
   });
 
   it("owner-only attempts with a stable snapshot", async () => {
@@ -346,4 +346,83 @@ describe("attempt rate limit", () => {
     expect((await send(a.token)).status).toBe(429);
     expect((await send(b.token)).status).toBe(201);
   }, 60000);
+});
+
+describe("submit robustness", () => {
+  it("drops answers for questions rejected after serving, but 400s unknown ones", async () => {
+    const { token } = await user(),
+      s = await makeSubject(),
+      a = await makeQuestion(s),
+      b = await makeQuestion(s),
+      e = await makeExam(s, [
+        [a, 1],
+        [b, 1],
+      ]);
+    await built.db.update("questions", { id: b }, { $set: { status: "rejected" } });
+    const r = await post(token, `/Exams/${e}/attempts`, {
+      answers: [
+        { questionId: a, selectedPosition: 1 },
+        { questionId: b, selectedPosition: 1 },
+      ],
+      spentSec: 5,
+    });
+    expect(r.status).toBe(201);
+    expect(r.body).toMatchObject({ score: 10, correctCount: 1, totalCount: 1 });
+    const bad = await post(token, `/Exams/${e}/attempts`, {
+      answers: [{ questionId: randomUUID(), selectedPosition: 1 }],
+      spentSec: 5,
+    });
+    expect(bad.status).toBe(400);
+  });
+
+  it("is idempotent per clientAttemptId, including concurrent races, without the business lock", async () => {
+    const { token } = await user(),
+      s = await makeSubject(),
+      a = await makeQuestion(s),
+      e = await makeExam(s, [[a, 1]]);
+    const lock = async () =>
+      (await (built.db as any).client
+        .db((built.db as any).databaseName)
+        .collection("system_state")
+        .findOne({ _id: "business-lock" })).revision;
+    const before = await lock();
+    const clientAttemptId = randomUUID();
+    const body = { answers: [{ questionId: a, selectedPosition: 1 }], spentSec: 3, clientAttemptId };
+    const first = await post(token, `/Exams/${e}/attempts`, body);
+    expect(first.status).toBe(201);
+    const again = await post(token, `/Exams/${e}/attempts`, body);
+    expect(again.status).toBe(200);
+    expect(again.body).toEqual(first.body);
+    expect(await built.db.count("attempts")).toBe(1);
+    const raceId = randomUUID();
+    const race = await Promise.all(
+      [1, 2, 3].map(() => post(token, `/Exams/${e}/attempts`, { ...body, clientAttemptId: raceId })),
+    );
+    expect(new Set(race.map((r) => r.body.attemptId)).size).toBe(1);
+    expect(race.filter((r) => r.status === 201).length).toBe(1);
+    expect(await built.db.count("attempts")).toBe(2);
+    expect(await lock()).toBe(before);
+    const other = await makeExam(s, [[a, 1]]);
+    expect(
+      (await post(token, `/Exams/${other}/attempts`, body)).status,
+    ).toBe(409);
+    expect(
+      (await post(token, `/Exams/${e}/attempts`, { ...body, clientAttemptId: "nope" })).status,
+    ).toBe(400);
+  });
+
+  it("returns empty code/name when the subject was removed", async () => {
+    const { token } = await user(),
+      s = await makeSubject(),
+      a = await makeQuestion(s),
+      e = await makeExam(s, [[a, 1]]);
+    const r = await post(token, `/Exams/${e}/attempts`, { answers: [], spentSec: 1 });
+    await (built.db as any).client
+      .db((built.db as any).databaseName)
+      .collection("subjects")
+      .deleteOne({ _id: s });
+    const v = await get(token, `/Attempts/${r.body.attemptId}`);
+    expect(v.status).toBe(200);
+    expect(v.body.attempt.subject).toMatchObject({ code: "", name: "" });
+  });
 });

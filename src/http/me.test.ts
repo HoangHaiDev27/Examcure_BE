@@ -290,4 +290,16 @@ describe("Me routes", () => {
     for (const l of ["0", "51"])
       expect((await get(me.token, "/Me/wrong-answers?limit=" + l)).status).toBe(400);
   });
+
+  it("never pools users without a school into a rank", async () => {
+    const s = await subject("AAA101");
+    const users = [];
+    for (let i = 0; i < 5; i++) {
+      const u = await user("");
+      users.push(u);
+      await attempt(u.user.id, s, i, iso(1));
+    }
+    for (const u of users)
+      expect((await get(u.token, "/Me/dashboard")).body.stats.rankPercentile).toBeNull();
+  });
 });

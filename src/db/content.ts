@@ -334,51 +334,89 @@ export class ContentRepository {
     body: {
       answers: Array<{ questionId: string; selectedPosition: number | null }>;
       spentSec: number;
+      clientAttemptId?: string | undefined;
     },
-  ) {
-    return this.db.transaction(async () => {
-      const { exam, items, subject } = await this.publishedExam(examId);
-      const chosen = new Map<string, number | null>(),
-        valid = new Set(items.map((i) => i.question.id as string));
-      for (const a of body.answers) {
-        if (chosen.has(a.questionId))
-          throw new AppError(400, "Câu trả lời bị trùng.", "DUPLICATE_ANSWER");
-        if (!valid.has(a.questionId))
-          throw new AppError(
-            400,
-            "Câu hỏi không thuộc đề thi.",
-            "INVALID_QUESTION",
-          );
-        chosen.set(a.questionId, a.selectedPosition);
-      }
-      let earned = 0,
-        total = 0,
-        correct = 0;
-      const answers = items.map(({ question: q, points }) => {
-        const right = (q.question_options ?? []).find(
-            (o: DataRow) => o.is_correct,
-          ),
-          selected = chosen.get(q.id) ?? null,
-          isCorrect = selected !== null && selected === right?.position;
-        total += points;
-        if (isCorrect) {
-          earned += points;
-          correct++;
-        }
-        return {
-          question_id: q.id,
-          selected_position: selected,
-          correct_position: right?.position ?? null,
-          is_correct: isCorrect,
-          points,
-        };
+  ): Promise<{
+    created: boolean;
+    attemptId: string;
+    score: number;
+    correctCount: number;
+    totalCount: number;
+  }> {
+    const existingFor = async () => {
+      if (!body.clientAttemptId) return null;
+      const row = await this.db.findOne("attempts", {
+        user_id: userId,
+        client_attempt_id: body.clientAttemptId,
       });
-      const score = total > 0 ? Math.round((earned / total) * 100) / 10 : 0;
+      if (!row) return null;
+      if (row.exam_id !== examId)
+        throw new AppError(
+          409,
+          "Mã nộp bài đã được dùng cho đề khác.",
+          "CLIENT_ATTEMPT_CONFLICT",
+        );
+      return {
+        created: false,
+        attemptId: row.id as string,
+        score: row.score as number,
+        correctCount: row.correct_count as number,
+        totalCount: row.total_count as number,
+      };
+    };
+    const replay = await existingFor();
+    if (replay) return replay;
+    // A single-document insert is atomic, so no transaction (and no global business lock) is needed.
+    const { exam, items, subject } = await this.publishedExam(examId);
+    const chosen = new Map<string, number | null>(),
+      valid = new Set(items.map((i) => i.question.id as string)),
+      inExam = new Set(
+        (exam.exam_questions ?? []).map((l: DataRow) => l.question_id as string),
+      );
+    for (const a of body.answers) {
+      if (chosen.has(a.questionId))
+        throw new AppError(400, "Câu trả lời bị trùng.", "DUPLICATE_ANSWER");
+      chosen.set(a.questionId, a.selectedPosition);
+      // Questions rejected after the exam was served are dropped silently.
+      if (!valid.has(a.questionId) && !inExam.has(a.questionId))
+        throw new AppError(
+          400,
+          "Câu hỏi không thuộc đề thi.",
+          "INVALID_QUESTION",
+        );
+    }
+    let earned = 0,
+      total = 0,
+      correct = 0;
+    const answers = items.map(({ question: q, points }) => {
+      const right = (q.question_options ?? []).find(
+          (o: DataRow) => o.is_correct,
+        ),
+        selected = chosen.get(q.id) ?? null,
+        isCorrect = selected !== null && selected === right?.position;
+      total += points;
+      if (isCorrect) {
+        earned += points;
+        correct++;
+      }
+      return {
+        question_id: q.id,
+        selected_position: selected,
+        correct_position: right?.position ?? null,
+        is_correct: isCorrect,
+        points,
+      };
+    });
+    const score = total > 0 ? Math.round((earned / total) * 100) / 10 : 0;
+    try {
       const attemptId = await this.insert("attempts", {
         user_id: userId,
         exam_id: exam.id,
         subject_id: exam.subject_id,
         school_code: subject.school_code,
+        ...(body.clientAttemptId
+          ? { client_attempt_id: body.clientAttemptId }
+          : {}),
         answers,
         correct_count: correct,
         total_count: items.length,
@@ -387,12 +425,19 @@ export class ContentRepository {
         submitted_at: now(),
       });
       return {
+        created: true,
         attemptId,
         score,
         correctCount: correct,
         totalCount: items.length,
       };
-    });
+    } catch (error) {
+      if ((error as { code?: number }).code === 11000) {
+        const raced = await existingFor();
+        if (raced) return raced;
+      }
+      throw error;
+    }
   }
   private async attemptItems(rows: DataRow[]) {
     const [exams, subjects] = await Promise.all([
@@ -468,7 +513,7 @@ export class ContentRepository {
     ]);
     const t = totals[0];
     let rankPercentile: number | null = null;
-    if (t) {
+    if (t && user.schoolId) {
       const cohortUsers = await this.db.aggregate("users", [
         { $match: { school_id: user.schoolId, status: "active" } },
         { $project: { _id: 0, id: 1 } },
@@ -589,7 +634,12 @@ export class ContentRepository {
       },
       subject: subject
         ? this.publicSubject(subject)
-        : { id: attempt.subject_id, schoolCode: attempt.school_code },
+        : {
+            id: attempt.subject_id,
+            schoolCode: attempt.school_code,
+            code: "",
+            name: "",
+          },
       questions: attempt.answers.map((a: DataRow) => {
         const q = byId.get(a.question_id);
         return {
@@ -605,18 +655,20 @@ export class ContentRepository {
     };
   }
   /** Latest ready version of each material across a whole school. */
-  async listSchoolMaterials(schoolCode: string): Promise<DataRow[]> {
+  async listSchoolMaterials(
+    schoolCode: string,
+  ): Promise<{ rows: DataRow[]; truncated: boolean }> {
     const subjects = await this.db.find("subjects", {
       school_code: schoolCode.toLowerCase(),
     });
-    if (!subjects.length) return [];
+    if (!subjects.length) return { rows: [], truncated: false };
     const bySubject = new Map(subjects.map((s) => [s.id as string, s]));
     const materials = await this.db.find(
       "materials",
       { subject_id: { $in: [...bySubject.keys()] } },
       { created_at: -1 },
     );
-    if (!materials.length) return [];
+    if (!materials.length) return { rows: [], truncated: false };
     const versions = await this.db.find(
       "material_versions",
       { material_id: { $in: materials.map((m) => m.id) }, status: "ready" },
@@ -625,10 +677,8 @@ export class ContentRepository {
     const latest = new Map<string, DataRow>();
     for (const v of versions)
       if (!latest.has(v.material_id)) latest.set(v.material_id, v);
-    return materials
-      .filter((m) => latest.has(m.id))
-      .slice(0, 200)
-      .map((m) => {
+    const ready = materials.filter((m) => latest.has(m.id));
+    const rows = ready.slice(0, 200).map((m) => {
         const s = bySubject.get(m.subject_id)!;
         return {
           ...latest.get(m.id)!,
@@ -641,6 +691,7 @@ export class ContentRepository {
           subject_name: s.name,
         };
       });
+    return { rows, truncated: ready.length > 200 };
   }
   async changeRole(actor: string, userId: string, role: string) {
     return this.db.transaction(async () => {
