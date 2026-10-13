@@ -4,6 +4,7 @@ import JSZip from "jszip";
 import { randomUUID } from "node:crypto";
 import { createApp } from "../app.js";
 import { loadConfig } from "../config.js";
+import { waitForExamGenerations } from "../services/exam-generation.service.js";
 const external = vi.hoisted(() => ({
   chunks: [] as any[],
   createIndex: vi.fn(),
@@ -316,17 +317,21 @@ describe("own database and private file storage", () => {
       slide_number: 1,
       score: 0.9,
     }));
+    for (const name of ["OPENAI_API_KEY", "OPENAI_EMBEDDING_MODEL", "OPENAI_QUESTION_MODEL"])
+      vi.stubEnv(name, "test");
     const generated = await request(built.app)
-      .post("/api/v1/Admin/question-generation")
+      .post("/api/v1/Admin/exams/generate")
       .auth(admin.token, { type: "bearer" })
       .send({
         subjectId,
-        materialVersionIds: [material.versionId],
+        title: "Quiz",
+        durationMinutes: 30,
         questionCount: 1,
         difficulty: "basic",
+        materialVersionIds: [material.versionId],
       });
-    expect(generated.status).toBe(201);
-    expect(generated.body.savedCount).toBe(1);
+    expect(generated.status).toBe(202);
+    await waitForExamGenerations();
     const question = (await built.db.find("questions"))[0]!;
     expect(
       question.question_options.filter((o: any) => o.is_correct),
@@ -334,21 +339,13 @@ describe("own database and private file storage", () => {
     expect(question.question_sources[0].material_version_id).toBe(
       material.versionId,
     );
-    const exam = {
-      subjectId,
-      title: "Quiz",
-      durationMinutes: 30,
-      questionIds: [question.id],
-      publish: true,
-    };
     expect(
       (
         await request(built.app)
-          .post("/api/v1/Admin/exams")
-          .auth(admin.token, { type: "bearer" })
-          .send(exam)
+          .get(`/api/v1/Exams/${generated.body.examId}`)
+          .auth(student.token, { type: "bearer" })
       ).status,
-    ).toBe(400);
+    ).toBe(404);
     expect(
       (
         await request(built.app)
@@ -358,15 +355,20 @@ describe("own database and private file storage", () => {
       ).status,
     ).toBe(200);
     const published = await request(built.app)
-      .post("/api/v1/Admin/exams")
+      .post(`/api/v1/Admin/exams/${generated.body.examId}/publish`)
       .auth(admin.token, { type: "bearer" })
-      .send(exam);
-    expect(published.status).toBe(201);
-    expect(published.body.status).toBe("published");
-    expect(
-      (await built.db.findOne("exams", { id: published.body.examId }))!
-        .exam_questions.length,
-    ).toBe(1);
+      .send({});
+    expect(published.status).toBe(200);
+    expect(published.body).toMatchObject({
+      status: "published",
+      questionCount: 1,
+      autoApprovedCount: 0,
+    });
+    const played = await request(built.app)
+      .get(`/api/v1/Exams/${generated.body.examId}`)
+      .auth(student.token, { type: "bearer" });
+    expect(played.status).toBe(200);
+    expect(played.body.exam.questions).toHaveLength(1);
   });
   it("checks upload size/state, rejects student writes and never exposes uploading files", async () => {
     const admin = await identity("admin"),

@@ -361,3 +361,131 @@ describe("exam overview and detail", () => {
     expect((await get(student.token, `/exams/${randomUUID()}`)).status).toBe(403);
   });
 });
+
+describe("publish, delete and locking", () => {
+  const send = (method: "post" | "patch" | "delete", token: string, path: string, body?: object) =>
+    request(built.app)
+      [method](`/api/v1${path}`)
+      .auth(token, { type: "bearer" })
+      .send(body ?? {});
+  async function seedExam(statuses: string[], examStatus = "draft") {
+    const subjectId = await makeSubject();
+    const ids: string[] = [];
+    for (const [i, status] of statuses.entries())
+      ids.push(
+        await repo.insert("questions", {
+          subject_id: subjectId,
+          prompt: `Q${i + 1}`,
+          explanation: "gt",
+          difficulty: "basic",
+          status,
+          question_options: [0, 1, 2, 3].map((position) => ({
+            position,
+            content: `o${position}`,
+            is_correct: position === 0,
+          })),
+        }),
+      );
+    const examId = await repo.insert("exams", {
+      subject_id: subjectId,
+      title: "Đề",
+      duration_minutes: 20,
+      status: examStatus,
+      created_at: new Date().toISOString(),
+      exam_questions: ids.map((question_id, i) => ({ question_id, position: i + 1, points: 1 })),
+    });
+    for (const id of ids) await built.db.update("questions", { id }, { $set: { exam_id: examId } });
+    return { subjectId, ids, examId };
+  }
+
+  it("publishes, auto-approves, prunes rejected links and serves students", async () => {
+    const admin = await identity(),
+      student = await identity("student"),
+      { ids, examId } = await seedExam(["approved", "rejected", "draft"]);
+    const res = await send("post", admin.token, `/Admin/exams/${examId}/publish`);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ examId, status: "published", questionCount: 2, autoApprovedCount: 1 });
+    const exam = (await built.db.findOne("exams", { id: examId }))!;
+    expect(exam.published_at).toBeTruthy();
+    expect(exam.exam_questions.map((l: any) => [l.question_id, l.position])).toEqual([
+      [ids[0], 1],
+      [ids[2], 2],
+    ]);
+    const played = await request(built.app)
+      .get(`/api/v1/Exams/${examId}`)
+      .auth(student.token, { type: "bearer" });
+    expect(played.status).toBe(200);
+    expect(played.body.exam.questions.map((q: any) => q.prompt)).toEqual(["Q1", "Q3"]);
+    expect((await send("post", admin.token, `/Admin/exams/${examId}/publish`)).body.code).toBe("EXAM_NOT_DRAFT");
+  });
+
+  it("refuses to publish empty or non-draft exams", async () => {
+    const admin = await identity();
+    const empty = await seedExam(["rejected", "rejected"]);
+    expect((await send("post", admin.token, `/Admin/exams/${empty.examId}/publish`)).body.code).toBe("EXAM_EMPTY");
+    for (const status of ["generating", "failed"]) {
+      const e = await seedExam(["draft"], status);
+      const r = await send("post", admin.token, `/Admin/exams/${e.examId}/publish`);
+      expect([r.status, r.body.code]).toEqual([409, "EXAM_NOT_DRAFT"]);
+    }
+    expect((await send("post", admin.token, `/Admin/exams/${randomUUID()}/publish`)).status).toBe(404);
+  });
+
+  it("locks questions of published exams but not drafts", async () => {
+    const admin = await identity();
+    const pub = await seedExam(["approved"], "published"),
+      draft = await seedExam(["draft"]);
+    const locked = await send("patch", admin.token, `/Admin/questions/${pub.ids[0]}`, { status: "draft" });
+    expect([locked.status, locked.body.code]).toEqual([409, "EXAM_PUBLISHED"]);
+    expect((await send("patch", admin.token, `/Admin/questions/${draft.ids[0]}`, { status: "approved" })).status).toBe(200);
+  });
+
+  it("removes and restores a question at its original position", async () => {
+    const admin = await identity(),
+      { ids, examId } = await seedExam(["draft", "draft", "draft"]);
+    const patch = (status: string) => send("patch", admin.token, `/Admin/questions/${ids[1]}`, { status });
+    expect((await patch("rejected")).status).toBe(200);
+    let detail = await get(admin.token, `/exams/${examId}`);
+    expect(detail.body.questions.map((q: any) => q.position)).toEqual([1, 3]);
+    expect((await patch("draft")).status).toBe(200);
+    detail = await get(admin.token, `/exams/${examId}`);
+    expect(detail.body.questions.map((q: any) => [q.position, q.prompt])).toEqual([
+      [1, "Q1"],
+      [2, "Q2"],
+      [3, "Q3"],
+    ]);
+  });
+
+  it("deletes draft and failed exams with their questions only", async () => {
+    const admin = await identity();
+    const draft = await seedExam(["draft", "draft"]),
+      failed = await seedExam([], "failed"),
+      generating = await seedExam(["draft"], "generating"),
+      published = await seedExam(["approved"], "published");
+    const shared = await seedExam(["draft"]);
+    // A question owned by the draft exam but also linked from another exam survives.
+    await built.db.update("exams", { id: published.examId }, {
+      $push: { exam_questions: { question_id: draft.ids[1], position: 2, points: 1 } },
+    } as any);
+    expect((await send("delete", admin.token, `/Admin/exams/${draft.examId}`)).status).toBe(204);
+    expect(await built.db.findOne("exams", { id: draft.examId })).toBeNull();
+    expect(await built.db.findOne("questions", { id: draft.ids[0] })).toBeNull();
+    expect(await built.db.findOne("questions", { id: draft.ids[1] })).not.toBeNull();
+    expect((await send("delete", admin.token, `/Admin/exams/${failed.examId}`)).status).toBe(204);
+    for (const e of [generating, published]) {
+      const r = await send("delete", admin.token, `/Admin/exams/${e.examId}`);
+      expect([r.status, r.body.code]).toEqual([409, "EXAM_LOCKED"]);
+    }
+    expect((await send("delete", admin.token, `/Admin/exams/${randomUUID()}`)).status).toBe(404);
+    expect(await built.db.findOne("questions", { id: shared.ids[0] })).not.toBeNull();
+  });
+
+  it("rejects students and removed routes", async () => {
+    const student = await identity("student"),
+      admin = await identity();
+    expect((await send("post", student.token, `/Admin/exams/${randomUUID()}/publish`)).status).toBe(403);
+    expect((await send("delete", student.token, `/Admin/exams/${randomUUID()}`)).status).toBe(403);
+    expect((await send("post", admin.token, "/Admin/question-generation", {})).status).toBe(404);
+    expect((await send("post", admin.token, "/Admin/exams", {})).status).toBe(404);
+  });
+});

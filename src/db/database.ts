@@ -139,6 +139,10 @@ export class AppDatabase {
     await this.ready;
     return this.collection(name).updateMany(filter, update, this.options());
   }
+  async deleteMany(name: string, filter: Filter<AppDocument>) {
+    await this.ready;
+    return this.collection(name).deleteMany(filter, this.options());
+  }
   async transaction<T>(task: () => Promise<T>): Promise<T> {
     await this.ready;
     if (this.context.getStore()) return task();

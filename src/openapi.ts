@@ -25,6 +25,24 @@ const limitQuery = {
   schema: { type: "integer", minimum: 1, maximum: 50, default: 20 },
 };
 const nullable = (type: string) => ({ type: [type, "null"] });
+const examSummary = {
+  type: "object",
+  properties: {
+    id: { type: "string", format: "uuid" },
+    subject_id: { type: "string", format: "uuid" },
+    title: { type: "string" },
+    status: { type: "string", enum: ["generating", "draft", "failed", "published"] },
+    source: { type: "string", enum: ["materials", "ai"] },
+    difficulty: nullable("string"),
+    duration_minutes: { type: "integer" },
+    requested_count: { type: "integer" },
+    question_count: { type: "integer" },
+    checked_count: { type: "integer" },
+    error_message: nullable("string"),
+    created_at: { type: "string" },
+    published_at: nullable("string"),
+  },
+};
 const option = {
   type: "object",
   properties: {
@@ -245,7 +263,15 @@ export const openApiDocument = {
         security: [{ bearerAuth: [] }],
         summary: "Load the admin content overview",
         responses: {
-          "200": { description: "Overview" },
+          "200": ok("Overview", {
+            type: "object",
+            properties: {
+              admin: { type: "object" },
+              subjects: { type: "array", items: { type: "object" } },
+              materials: { type: "array", items: { type: "object" } },
+              exams: { type: "array", items: examSummary },
+            },
+          }),
           "401": { description: "Authentication required" },
           "403": { description: "Admin role required" },
         },
@@ -787,36 +813,103 @@ export const openApiDocument = {
         },
       },
     },
-    "/Admin/question-generation": {
-      post: {
-        tags: ["Admin"],
-        security: [{ bearerAuth: [] }],
-        summary: "Retrieve source chunks and generate draft questions",
-        responses: { "201": { description: "Questions generated" } },
-      },
-    },
     "/Admin/questions/{questionId}": {
       patch: {
         tags: ["Admin"],
         security: [{ bearerAuth: [] }],
-        summary: "Edit or review a generated question",
-        parameters: [
-          {
-            name: "questionId",
-            in: "path",
-            required: true,
-            schema: { type: "string", format: "uuid" },
-          },
-        ],
-        responses: { "200": { description: "Question updated" } },
+        summary: "Edit or review a generated question (locked once its exam is published)",
+        parameters: [pathUuid("questionId")],
+        responses: {
+          "200": { description: "Question updated" },
+          ...errors("400", "401", "403", "404", "409"),
+        },
       },
     },
-    "/Admin/exams": {
+    "/Admin/exams/generate": {
       post: {
         tags: ["Admin"],
         security: [{ bearerAuth: [] }],
-        summary: "Create an exam from approved questions",
-        responses: { "201": { description: "Exam created" } },
+        summary: "Start generating a draft exam with AI in the background",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["subjectId", "title", "durationMinutes", "questionCount", "difficulty"],
+                properties: {
+                  subjectId: { type: "string", format: "uuid" },
+                  title: { type: "string", maxLength: 200 },
+                  durationMinutes: { type: "integer", minimum: 1, maximum: 300 },
+                  questionCount: { type: "integer", minimum: 1, maximum: 50 },
+                  difficulty: { type: "string", enum: ["basic", "medium", "advanced"] },
+                  extraInstructions: { type: "string", maxLength: 1000 },
+                  materialVersionIds: {
+                    type: "array",
+                    maxItems: 20,
+                    items: { type: "string", format: "uuid" },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "202": ok("Generation started", {
+            type: "object",
+            properties: {
+              examId: { type: "string", format: "uuid" },
+              status: { type: "string", enum: ["generating"] },
+              source: { type: "string", enum: ["materials", "ai"] },
+            },
+          }),
+          ...errors("400", "401", "403", "404", "503"),
+        },
+      },
+    },
+    "/Admin/exams/{examId}": {
+      get: {
+        tags: ["Admin"],
+        security: [{ bearerAuth: [] }],
+        summary: "Exam summary with its questions, options and sources",
+        parameters: [pathUuid("examId")],
+        responses: {
+          "200": ok("Exam detail", {
+            type: "object",
+            properties: { exam: examSummary, questions: { type: "array", items: { type: "object" } } },
+          }),
+          ...errors("400", "401", "403", "404"),
+        },
+      },
+      delete: {
+        tags: ["Admin"],
+        security: [{ bearerAuth: [] }],
+        summary: "Delete a draft or failed exam and its own questions",
+        parameters: [pathUuid("examId")],
+        responses: {
+          "204": { description: "Deleted" },
+          ...errors("400", "401", "403", "404", "409"),
+        },
+      },
+    },
+    "/Admin/exams/{examId}/publish": {
+      post: {
+        tags: ["Admin"],
+        security: [{ bearerAuth: [] }],
+        summary: "Publish a draft exam, approving its remaining draft questions",
+        parameters: [pathUuid("examId")],
+        responses: {
+          "200": ok("Published", {
+            type: "object",
+            properties: {
+              examId: { type: "string", format: "uuid" },
+              status: { type: "string", enum: ["published"] },
+              questionCount: { type: "integer" },
+              autoApprovedCount: { type: "integer" },
+            },
+          }),
+          ...errors("400", "401", "403", "404", "409"),
+        },
       },
     },
   },

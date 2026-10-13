@@ -293,16 +293,6 @@ export class ContentRepository {
       status: "ready",
     });
   }
-  async readyVersions(subjectId: string, ids: string[]) {
-    const materials = await this.db.find("materials", {
-      subject_id: subjectId,
-    });
-    return this.db.find("material_versions", {
-      id: { $in: ids },
-      material_id: { $in: materials.map((m) => m.id) },
-      status: "ready",
-    });
-  }
   async listMaterials(
     schoolCode: string,
     subjectCode: string,
@@ -978,60 +968,6 @@ export class ContentRepository {
       }
     });
   }
-  async saveGenerated(
-    runId: string,
-    actor: string,
-    subjectId: string,
-    questions: Array<{
-      prompt: string;
-      explanation: string;
-      difficulty: string;
-      options: Array<{
-        position: number;
-        content: string;
-        is_correct: boolean;
-      }>;
-      sources: Array<{
-        material_version_id: string;
-        slide_number: number;
-        chunk_id: string;
-        excerpt: string;
-        retrieval_score: number;
-      }>;
-    }>,
-  ) {
-    return this.db.transaction(async () => {
-      for (const q of questions) {
-        const id = randomUUID();
-        await this.insert("questions", {
-          id,
-          generation_run_id: runId,
-          subject_id: subjectId,
-          prompt: q.prompt,
-          explanation: q.explanation,
-          difficulty: q.difficulty,
-          created_by: actor,
-          created_at: now(),
-          updated_at: now(),
-          question_options: q.options
-            .map((o) => ({ ...o, id: randomUUID(), question_id: id }))
-            .sort((a, b) => a.position - b.position),
-          question_sources: [
-            ...new Map(q.sources.map((s) => [s.chunk_id, s])).values(),
-          ].map((s) => ({ ...s, id: randomUUID(), question_id: id })),
-        });
-      }
-      await this.db.update(
-        "generation_runs",
-        { id: runId },
-        { $set: { status: "completed", completed_at: now() } },
-      );
-      await this.audit(actor, "questions.generated", "generation_run", runId, {
-        saved_count: questions.length,
-      });
-      return questions.length;
-    });
-  }
   async reviewQuestion(
     actor: string,
     id: string,
@@ -1047,6 +983,17 @@ export class ContentRepository {
     await this.db.transaction(async () => {
       const q = await this.db.findOne("questions", { id });
       if (!q) throw new AppError(404, "Không tìm thấy câu hỏi.", "NOT_FOUND");
+      if (
+        await this.db.findOne("exams", {
+          status: "published",
+          "exam_questions.question_id": id,
+        })
+      )
+        throw new AppError(
+          409,
+          "Đề đã xuất bản, không sửa câu hỏi được nữa.",
+          "EXAM_PUBLISHED",
+        );
       const options: DataRow[] = body.options
         ? body.options
             .map((o) => ({
@@ -1090,56 +1037,118 @@ export class ContentRepository {
       await this.audit(actor, `question.${body.status}`, "question", id);
     });
   }
-  async createExam(
-    actor: string,
-    body: {
-      subjectId: string;
-      title: string;
-      durationMinutes: number;
-      questionIds: string[];
-      publish: boolean;
-    },
-  ) {
+  async publishExam(actor: string, examId: string) {
     return this.db.transaction(async () => {
-      const ids = [...new Set(body.questionIds)];
-      const questions = await this.db.find("questions", {
-        subject_id: body.subjectId,
-        status: "approved",
-        id: { $in: ids },
-      });
-      if (questions.length !== ids.length)
+      const exam = await this.db.findOne("exams", { id: examId });
+      if (!exam) throw new AppError(404, "Không tìm thấy đề thi.", "NOT_FOUND");
+      if (exam.status !== "draft")
         throw new AppError(
-          400,
-          "Đề chỉ dùng câu hỏi đã duyệt thuộc cùng môn học.",
-          "INVALID_QUESTIONS",
+          409,
+          "Chỉ xuất bản được đề đang chờ duyệt.",
+          "EXAM_NOT_DRAFT",
         );
-      const status = body.publish ? "published" : "draft",
-        examId = randomUUID();
-      await this.insert("exams", {
-        id: examId,
-        subject_id: body.subjectId,
-        title: body.title,
-        duration_minutes: body.durationMinutes,
-        status,
-        created_by: actor,
-        published_at: body.publish ? now() : null,
-        created_at: now(),
-        updated_at: now(),
-        exam_questions: ids.map((id, index) => ({
-          exam_id: examId,
-          question_id: id,
-          position: index + 1,
-          points: 1,
-        })),
-      });
-      await this.audit(
-        actor,
-        body.publish ? "exam.published" : "exam.created",
-        "exam",
-        examId,
-        { question_count: ids.length },
+      const links = [...(exam.exam_questions ?? [])].sort(
+        (a: DataRow, b: DataRow) => a.position - b.position,
       );
-      return { examId, status };
+      const rows = links.length
+        ? await this.db.find("questions", {
+            id: { $in: links.map((l: DataRow) => l.question_id) },
+          })
+        : [];
+      const byId = new Map(rows.map((q) => [q.id as string, q]));
+      const kept = links.filter((l: DataRow) => {
+        const q = byId.get(l.question_id);
+        return q && q.status !== "rejected";
+      });
+      if (!kept.length)
+        throw new AppError(409, "Đề chưa có câu hỏi nào.", "EXAM_EMPTY");
+      const timestamp = now();
+      let autoApproved = 0;
+      for (const l of kept) {
+        const q = byId.get(l.question_id)!;
+        if (q.status !== "draft") continue;
+        const options: DataRow[] = q.question_options ?? [];
+        if (
+          options.length !== 4 ||
+          new Set(options.map((o) => o.position)).size !== 4 ||
+          options.filter((o) => o.is_correct).length !== 1
+        )
+          throw new AppError(
+            400,
+            "Câu " + l.position + " phải có 4 phương án và đúng một đáp án đúng.",
+            "INVALID_OPTIONS",
+          );
+        await this.db.update(
+          "questions",
+          { id: q.id },
+          {
+            $set: {
+              status: "approved",
+              approved_by: actor,
+              approved_at: timestamp,
+              updated_at: timestamp,
+            },
+          },
+        );
+        autoApproved++;
+      }
+      await this.db.update(
+        "exams",
+        { id: examId },
+        {
+          $set: {
+            status: "published",
+            published_at: timestamp,
+            updated_at: timestamp,
+            exam_questions: kept.map((l: DataRow, i: number) => ({
+              ...l,
+              position: i + 1,
+            })),
+          },
+        },
+      );
+      await this.audit(actor, "exam.published", "exam", examId, {
+        question_count: kept.length,
+        auto_approved_count: autoApproved,
+      });
+      return {
+        examId,
+        status: "published" as const,
+        questionCount: kept.length,
+        autoApprovedCount: autoApproved,
+      };
+    });
+  }
+  async deleteExam(actor: string, examId: string) {
+    await this.db.transaction(async () => {
+      const exam = await this.db.findOne("exams", { id: examId });
+      if (!exam) throw new AppError(404, "Không tìm thấy đề thi.", "NOT_FOUND");
+      if (!["draft", "failed"].includes(exam.status))
+        throw new AppError(
+          409,
+          "Không xoá được đề đang soạn hoặc đã xuất bản.",
+          "EXAM_LOCKED",
+        );
+      const owned = await this.db.find("questions", { exam_id: examId });
+      const ownedIds = owned.map((q) => q.id as string);
+      const shared = ownedIds.length
+        ? await this.db.find("exams", {
+            id: { $ne: examId },
+            "exam_questions.question_id": { $in: ownedIds },
+          })
+        : [];
+      const used = new Set(
+        shared.flatMap((e) =>
+          (e.exam_questions ?? []).map((l: DataRow) => l.question_id as string),
+        ),
+      );
+      const removable = ownedIds.filter((id) => !used.has(id));
+      if (removable.length)
+        await this.db.deleteMany("questions", { id: { $in: removable } });
+      await this.db.deleteMany("exams", { id: examId });
+      await this.audit(actor, "exam.deleted", "exam", examId, {
+        title: exam.title,
+      });
     });
   }
 }
