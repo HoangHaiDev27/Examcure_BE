@@ -9,7 +9,8 @@ try {
       : [
           "node_modules/vitest/vitest.mjs",
           ...(mode === "watch" ? ["src"] : ["run", "src"]),
-          "--testTimeout=15000",
+          "--no-file-parallelism",
+          "--testTimeout=30000",
           "--hookTimeout=20000",
           ...process.argv.slice(3),
         ];

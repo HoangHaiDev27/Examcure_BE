@@ -133,8 +133,18 @@ describe("GET /Materials", () => {
   it("flags truncation at 200", async () => {
     const t = await token(),
       a = await subject("fptu", "PRF192");
-    for (let i = 0; i < 201; i++)
-      await material(a, "m" + i, new Date(2026, 0, 1, 0, 0, i).toISOString(), [[1, "ready"]]);
+    const col = (built.db as any).client.db((built.db as any).databaseName);
+    const mats = Array.from({ length: 201 }, (_, i) => {
+      const id = randomUUID(), at = new Date(2026, 0, 1, 0, 0, i).toISOString();
+      return { id, at };
+    });
+    await built.db.find("subjects", {});
+    await col.collection("materials").insertMany(
+      mats.map((m) => ({ _id: m.id as any, id: m.id, subject_id: a, title: "m", description: null, created_at: m.at, updated_at: m.at })),
+    );
+    await col.collection("material_versions").insertMany(
+      mats.map((m) => ({ _id: randomUUID() as any, id: randomUUID(), material_id: m.id, version_number: 1, status: "ready", original_path: "o/" + randomUUID(), original_filename: "f.pptx", mime_type: "x", size_bytes: 1, slide_count: 1, created_at: m.at })),
+    );
     const r = await get(t, "schoolCode=fptu");
     expect(r.body.materials).toHaveLength(200);
     expect(r.body.truncated).toBe(true);
