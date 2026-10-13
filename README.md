@@ -33,7 +33,8 @@ cookie thuộc origin FE.
   trên server. Refresh giữ session ID để các tab khác không mất access token.
 - `/Auth/forgot-password`, `/Auth/reset-password`: OTP đặt lại mật khẩu; không
   tạo phiên phục hồi. Local không có SMTP sẽ in OTP ở terminal; production
-  bắt buộc SMTP và không trả OTP trong JSON.
+  bắt buộc SMTP trừ khi đặt `OTP_DELIVERY=log` (tạm thời: OTP in ra log server);
+  OTP không bao giờ được trả trong JSON.
 - `/Auth/google/start`, `/Auth/google/callback`: authorization code, state/PKCE.
   Điền đủ ba biến Google trong BE, bật `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true`
   ở FE. Redirect URI: `https://<frontend>/api/v1/Auth/google/callback`.

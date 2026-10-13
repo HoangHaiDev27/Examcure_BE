@@ -31,6 +31,7 @@ const schema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_REDIRECT_URI: z.union([z.string().url(), z.literal("")]).optional(),
+  OTP_DELIVERY: z.enum(["smtp", "log"]).default("smtp"),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_SECURE: booleanFromEnv.default(false),
@@ -93,7 +94,11 @@ export function loadConfig(
       throw new Error("MONGODB_URI is required in production");
     if (config.STORAGE_DRIVER !== "s3")
       throw new Error("Production requires private S3 storage");
-    if (purpose === "api" && !config.SMTP_HOST)
+    if (
+      purpose === "api" &&
+      config.OTP_DELIVERY === "smtp" &&
+      !config.SMTP_HOST
+    )
       throw new Error("SMTP_HOST is required in production");
     if (
       purpose === "api" &&

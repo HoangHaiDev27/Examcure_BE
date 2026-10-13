@@ -7,7 +7,12 @@ export interface OtpSender {
 }
 
 export function createOtpSender(config: AppConfig): OtpSender {
-  if (!config.SMTP_HOST) {
+  if (config.OTP_DELIVERY === "log" || !config.SMTP_HOST) {
+    if (config.OTP_DELIVERY === "log" && config.NODE_ENV === "production") {
+      console.warn(
+        "[ExamCure OTP] OTP_DELIVERY=log: OTP codes are written to the server log and email delivery is disabled (temporary; set OTP_DELIVERY=smtp with SMTP_* to restore)."
+      );
+    }
     return {
       async send(email, otp, purpose) {
         console.info(`[ExamCure OTP] ${email} ${purpose}: ${otp}`);
