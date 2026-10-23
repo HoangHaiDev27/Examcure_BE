@@ -57,6 +57,8 @@ Tạo metadata tại `/Admin/materials`, upload bytes qua PUT `uploadPath`, rồ
 hạn 20 MB. File gốc riêng tư. Sinh viên đọc slide text và lấy URL tải ký 60 giây;
 URL bị thu hồi khi logout/reset phiên cấp URL.
 
+**Trợ lý học tập AI**: `POST /Assistant/chat` (tuỳ chọn `subjectId` để trả lời bám tài liệu môn) và `GET /Assistant/usage`. Cần `OPENAI_API_KEY`, `OPENAI_EMBEDDING_MODEL` và `OPENAI_CHAT_MODEL` (hoặc `OPENAI_QUESTION_MODEL`). Giới hạn 6 yêu cầu/phút và `ASSISTANT_DAILY_LIMIT` (mặc định 20) câu hỏi/ngày theo giờ Việt Nam; nội dung chat không được lưu.
+
 `MATERIAL_PROCESSING_MODE=inline` index text PPTX/DOCX ngay trên API.
 `worker` đưa vào queue MongoDB, trả 202; worker chuyển PDF/PNG bằng
 LibreOffice/Poppler rồi index MongoDB. API/worker dùng cùng MongoDB.

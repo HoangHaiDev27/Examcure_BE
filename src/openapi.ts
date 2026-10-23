@@ -97,6 +97,7 @@ export const openApiDocument = {
     { name: "Attempts" },
     { name: "Me" },
     { name: "Materials" },
+    { name: "Assistant" },
   ],
   components: {
     securitySchemes: {
@@ -460,6 +461,94 @@ export const openApiDocument = {
             },
           }),
           ...errors("400", "401"),
+        },
+      },
+    },
+    "/Assistant/usage": {
+      get: {
+        tags: ["Assistant"],
+        security: auth,
+        summary: "Daily study-assistant quota of the current user",
+        responses: {
+          "200": ok("Quota", {
+            type: "object",
+            properties: {
+              available: { type: "boolean" },
+              limit: { type: "integer" },
+              used: { type: "integer" },
+              remainingToday: { type: "integer" },
+            },
+          }),
+          ...errors("401"),
+        },
+      },
+    },
+    "/Assistant/chat": {
+      post: {
+        tags: ["Assistant"],
+        security: auth,
+        summary:
+          "Ask the study assistant (6/min/user, daily quota). Optionally grounded in a subject's ready materials. Chat content is not stored",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["messages"],
+                properties: {
+                  subjectId: { type: "string", format: "uuid" },
+                  messages: {
+                    type: "array",
+                    minItems: 1,
+                    maxItems: 8,
+                    description: "The last message must have role user",
+                    items: {
+                      type: "object",
+                      required: ["role", "content"],
+                      properties: {
+                        role: { type: "string", enum: ["user", "assistant"] },
+                        content: { type: "string", minLength: 1, maxLength: 2000 },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": ok("Answer", {
+            type: "object",
+            properties: {
+              answer: { type: "string" },
+              grounded: { type: "boolean" },
+              sources: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    versionId: { type: "string", format: "uuid" },
+                    materialTitle: { type: "string" },
+                    originalFilename: { type: "string" },
+                    slideNumber: { type: "integer" },
+                    excerpt: { type: "string" },
+                  },
+                },
+              },
+              subject: {
+                type: ["object", "null"],
+                properties: {
+                  id: { type: "string", format: "uuid" },
+                  schoolCode: { type: "string" },
+                  code: { type: "string" },
+                  name: { type: "string" },
+                },
+              },
+              remainingToday: { type: "integer" },
+            },
+          }),
+          ...errors("400", "401", "404", "429", "502", "503"),
         },
       },
     },

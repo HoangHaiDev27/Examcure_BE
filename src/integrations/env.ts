@@ -32,11 +32,21 @@ export function isOpenAIConfigured(): boolean {
   );
 }
 
+/** Chat needs the key, a chat (or question) model, and the embedding model for subject retrieval. */
+export function isAssistantConfigured(): boolean {
+  return (
+    configured("OPENAI_API_KEY") &&
+    configured("OPENAI_EMBEDDING_MODEL") &&
+    (configured("OPENAI_CHAT_MODEL") || configured("OPENAI_QUESTION_MODEL"))
+  );
+}
+
 export function integrationStatus() {
   return {
 
     mongodb: configured("MONGODB_URI"),
     openai: isOpenAIConfigured(),
+    assistant: isAssistantConfigured(),
     converter:
       commandAvailable("LIBREOFFICE_BIN", "soffice", ["--version"]) &&
       commandAvailable("PDFTOPPM_BIN", "pdftoppm", ["-v"]) &&
