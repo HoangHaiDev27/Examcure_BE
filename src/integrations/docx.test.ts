@@ -47,6 +47,40 @@ describe("extractDocxSections", () => {
     const s = await extractDocxSections(await docx(p("", "Heading1") + `<w:p/>` + p("   ") + p("Real", "Heading1") + p("t")));
     expect(s).toEqual([{ slideNumber: 1, text: "Real\nt", notes: "" }]);
   });
+  it("handles textboxes: skips fallback, keeps host text, lifts box text once", async () => {
+    const body = `<w:p><w:r><w:t>before</w:t></w:r><mc:AlternateContent><mc:Choice><w:txbxContent><w:p><w:r><w:t>Box</w:t></w:r></w:p></w:txbxContent></mc:Choice><mc:Fallback><w:txbxContent><w:p><w:r><w:t>Box</w:t></w:r></w:p></w:txbxContent></mc:Fallback></mc:AlternateContent><w:r><w:t>AFTER</w:t></w:r></w:p>` + p("next");
+    const s = await extractDocxSections(await docx(body));
+    expect(s[0]!.text).toBe("beforeAFTER\nBox\nnext");
+  });
+  it("resolves heading styles through styles.xml names and basedOn", async () => {
+    const zip = new JSZip();
+    zip.file("word/document.xml", `<w:document ${NS}><w:body>${p("A", "u1")}${p("a")}${p("B", "custom")}${p("b")}${p("C", "Other")}${p("c")}</w:body></w:document>`);
+    zip.file("word/styles.xml", `<w:styles ${NS}><w:style w:type="paragraph" w:styleId="u1"><w:name w:val="heading 1"/></w:style><w:style w:type="paragraph" w:styleId="custom"><w:name w:val="Mine"/><w:basedOn w:val="u1"/></w:style><w:style w:type="paragraph" w:styleId="Other"><w:name w:val="Normal2"/></w:style></w:styles>`);
+    const s = await extractDocxSections(await zip.generateAsync({ type: "nodebuffer" }));
+    expect(s.map((x) => x.text)).toEqual(["A\na", "B\nb\nC\nc"]);
+  });
+  it("does not leak XML from self-closing w:t", async () => {
+    const s = await extractDocxSections(await docx(`<w:p><w:r><w:t xml:space="preserve"/></w:r><w:r><w:t>x</w:t></w:r></w:p>`));
+    expect(s[0]!.text).toBe("x");
+  });
+  it("honours pageBreakBefore values", async () => {
+    const pb = (v: string) => `<w:p><w:pPr><w:pageBreakBefore${v}/></w:pPr><w:r><w:t>n</w:t></w:r></w:p>`;
+    expect((await extractDocxSections(await docx(p("a") + pb(' w:val="1"') + pb(" ")))).length).toBe(3);
+    expect((await extractDocxSections(await docx(p("a") + pb(' w:val="false"') + pb(' w:val="0"')))).length).toBe(1);
+  });
+  it("keeps a heading with an oversized paragraph and caps section size", async () => {
+    const long = Array.from({ length: 800 }, (_, i) => `word${i}`).join(" ") + ".";
+    const s = await extractDocxSections(await docx(p("Heading", "Heading1") + p(long) + p("Next", "Heading1") + p("n")));
+    expect(s[0]!.text.startsWith("Heading\nword0")).toBe(true);
+    expect(s.every((x) => x.text.length <= 4000)).toBe(true);
+    expect(s.at(-1)!.text).toBe("Next\nn");
+  });
+  it("finds the main part through _rels/.rels", async () => {
+    const zip = new JSZip();
+    zip.file("_rels/.rels", '<Relationships><Relationship Id="r1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document2.xml"/></Relationships>');
+    zip.file("word/document2.xml", `<w:document ${NS}><w:body>${p("One", "Heading1")}${p("Two", "Heading1")}</w:body></w:document>`);
+    expect((await extractDocxSections(await zip.generateAsync({ type: "nodebuffer" }))).length).toBe(2);
+  });
   it("throws when document.xml is missing", async () => {
     const zip = new JSZip();
     zip.file("x.txt", "x");

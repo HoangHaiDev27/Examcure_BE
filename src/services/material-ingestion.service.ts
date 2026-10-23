@@ -24,7 +24,7 @@ function errorMessage(error: unknown): string {
 }
 
 /**
- * Synchronous, no-worker ingestion mode. It deliberately only handles PPTX text
+ * Synchronous, no-worker ingestion mode. It deliberately only handles PPTX/DOCX text
  * and notes; visual previews require the optional LibreOffice/Poppler worker.
  */
 export async function ingestMaterialVersion(
