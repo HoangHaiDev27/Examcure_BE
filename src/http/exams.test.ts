@@ -333,6 +333,50 @@ describe("student exams", () => {
   });
 });
 
+describe("subject exam stats", () => {
+  it("returns difficulty, bestScore and attemptCount per user", async () => {
+    const me = await user(),
+      other = await user(),
+      s = await makeSubject(),
+      a = await makeQuestion(s, "approved", 1),
+      e1 = await makeExam(s, [[a, 1]], "published", {
+        published_at: "2026-01-01T00:00:00.000Z",
+        difficulty: "medium",
+      }),
+      e2 = await makeExam(s, [[a, 1]], "published", {
+        published_at: "2026-02-01T00:00:00.000Z",
+      });
+    const attempt = (u: string, score: number, when: string) =>
+      repo.insert("attempts", {
+        user_id: u,
+        exam_id: e1,
+        subject_id: s,
+        school_code: "fptu",
+        answers: [],
+        score,
+        submitted_at: when,
+      });
+    await attempt(me.user.id, 8, "2026-01-01T00:00:00.000Z");
+    await attempt(me.user.id, 6, "2026-02-01T00:00:00.000Z");
+    await attempt(other.user.id, 10, "2026-03-01T00:00:00.000Z");
+    const r = await get(me.token, `/Subjects/${s}/exams`);
+    expect(r.status).toBe(200);
+    expect(r.body.exams.map((x: any) => x.id)).toEqual([e2, e1]);
+    expect(r.body.exams[0]).toMatchObject({
+      difficulty: null,
+      bestScore: null,
+      attemptCount: 0,
+      lastScore: null,
+    });
+    expect(r.body.exams[1]).toMatchObject({
+      difficulty: "medium",
+      lastScore: 6,
+      bestScore: 8,
+      attemptCount: 2,
+    });
+  });
+});
+
 describe("attempt rate limit", () => {
   it("is keyed per user", async () => {
     const a = await user(),

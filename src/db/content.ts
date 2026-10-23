@@ -471,9 +471,16 @@ export class ContentRepository {
     const scores = await this.db.aggregate("attempts", [
       { $match: { user_id: userId, exam_id: { $in: exams.map((e) => e.id) } } },
       { $sort: { submitted_at: -1 } },
-      { $group: { _id: "$exam_id", score: { $first: "$score" } } },
+      {
+        $group: {
+          _id: "$exam_id",
+          score: { $first: "$score" },
+          best: { $max: "$score" },
+          count: { $sum: 1 },
+        },
+      },
     ]);
-    const last = new Map(scores.map((r) => [r._id as string, r.score]));
+    const stats = new Map(scores.map((r) => [r._id as string, r]));
     return Promise.all(
       exams.map(async (e) => ({
         id: e.id,
@@ -481,7 +488,10 @@ export class ContentRepository {
         durationMinutes: e.duration_minutes,
         questionCount: (await this.servable(e)).length,
         publishedAt: e.published_at ?? null,
-        lastScore: last.get(e.id) ?? null,
+        lastScore: stats.get(e.id)?.score ?? null,
+        difficulty: e.difficulty ?? null,
+        bestScore: stats.get(e.id)?.best ?? null,
+        attemptCount: stats.get(e.id)?.count ?? 0,
       })),
     );
   }

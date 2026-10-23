@@ -484,6 +484,13 @@ export const openApiDocument = {
                     questionCount: { type: "integer" },
                     publishedAt: nullable("string"),
                     lastScore: nullable("number"),
+                    difficulty: {
+                      type: "string",
+                      enum: ["basic", "medium", "advanced"],
+                      nullable: true,
+                    },
+                    bestScore: nullable("number"),
+                    attemptCount: { type: "integer" },
                   },
                 },
               },
