@@ -25,7 +25,7 @@ function requireEnv(name) {
 const config = loadConfig(process.env, "maintenance");
 const database = new AppDatabase(config.MONGODB_URI, config.MONGODB_DATABASE);
 const repository = new ContentRepository(database);
-const storage = createStorage(config);
+const storage = createStorage(config, database);
 const mongo = database.client;
 const mongoDatabase = config.MONGODB_DATABASE;
 const mongoCollection =

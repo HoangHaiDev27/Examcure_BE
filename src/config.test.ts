@@ -45,3 +45,24 @@ describe("loadConfig OTP_DELIVERY", () => {
     );
   });
 });
+
+describe("loadConfig STORAGE_DRIVER", () => {
+  const smtp = { OTP_DELIVERY: "log" };
+  it("allows mongo storage in production without S3 credentials", () => {
+    const config = loadConfig({
+      ...productionEnv,
+      ...smtp,
+      STORAGE_DRIVER: "mongo",
+      S3_BUCKET: "",
+      S3_ACCESS_KEY_ID: "",
+      S3_SECRET_ACCESS_KEY: ""
+    });
+    expect(config.STORAGE_DRIVER).toBe("mongo");
+  });
+
+  it("rejects local storage in production", () => {
+    expect(() =>
+      loadConfig({ ...productionEnv, ...smtp, STORAGE_DRIVER: "local" })
+    ).toThrow("Production requires S3 or MongoDB file storage");
+  });
+});

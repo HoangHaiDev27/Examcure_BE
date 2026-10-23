@@ -385,7 +385,7 @@ if (
       JSON.stringify(
         await importLegacyExport(
           db,
-          createStorage(config),
+          createStorage(config, db),
           manifest,
           dirname(location),
           { apply: process.argv.includes("--apply") },

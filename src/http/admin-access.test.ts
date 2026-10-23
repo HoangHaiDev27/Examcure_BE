@@ -3,6 +3,8 @@ import request from "supertest";
 import JSZip from "jszip";
 import { randomUUID } from "node:crypto";
 import { createApp } from "../app.js";
+import { AppDatabase } from "../db/database.js";
+import { createStorage } from "../integrations/storage.js";
 import { loadConfig } from "../config.js";
 import { waitForExamGenerations } from "../services/exam-generation.service.js";
 const external = vi.hoisted(() => ({
@@ -415,6 +417,63 @@ describe("own database and private file storage", () => {
     expect(slides.body.slides.map((x: any) => x.slide_number)).toEqual([1, 2]);
     expect(slides.body.slides[0].text_content).toContain("FIFO");
     expect(slides.body.slides[1].text_content).toContain("LIFO");
+  });
+  it("stores a DOCX original in GridFS and completes the upload", async () => {
+    await built.db.close();
+    const cfg = {
+        ...config,
+        STORAGE_DRIVER: "mongo" as const,
+        MONGODB_DATABASE: "examcure_test_" + randomUUID().replaceAll("-", ""),
+      },
+      db = new AppDatabase(cfg.MONGODB_URI, cfg.MONGODB_DATABASE);
+    built = createApp(cfg, {
+      db,
+      otpSender: { async send() {} },
+      storage: createStorage(cfg, db),
+    });
+    const admin = await identity("admin"),
+      subjectId = await subject(admin.token),
+      mimeType =
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      zip = new JSZip();
+    zip.file(
+      "word/document.xml",
+      '<w:document xmlns:w="w"><w:body><w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>Queue</w:t></w:r></w:p><w:p><w:r><w:t>A queue is FIFO.</w:t></w:r></w:p></w:body></w:document>',
+    );
+    const file = await zip.generateAsync({ type: "nodebuffer" }),
+      created = await request(built.app)
+        .post("/api/v1/Admin/materials")
+        .auth(admin.token, { type: "bearer" })
+        .send({
+          subjectId,
+          title: "Word",
+          fileName: "lecture.docx",
+          mimeType,
+          sizeBytes: file.length,
+        });
+    expect(created.status).toBe(201);
+    expect(
+      (
+        await request(built.app)
+          .put("/api/v1" + created.body.uploadPath)
+          .auth(admin.token, { type: "bearer" })
+          .set("Content-Type", mimeType)
+          .send(file)
+      ).status,
+    ).toBe(200);
+    const complete = await request(built.app)
+      .post(`/api/v1/Admin/materials/${created.body.versionId}/complete-upload`)
+      .auth(admin.token, { type: "bearer" })
+      .send({});
+    expect(complete.status).toBe(200);
+    expect(complete.body).toMatchObject({ status: "ready" });
+    const stored = await db.client
+      .db(db.databaseName)
+      .collection("material_files.files")
+      .find()
+      .toArray();
+    expect(stored).toHaveLength(1);
+    expect(stored[0].length).toBe(file.length);
   });
   it("rejects unsupported material extensions and mismatched MIME types", async () => {
     const admin = await identity("admin"),

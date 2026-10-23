@@ -76,7 +76,7 @@ export function createApp(
       tokens,
       db,
       config,
-      dependencies.storage ?? createStorage(config),
+      dependencies.storage ?? createStorage(config, db),
     ),
   );
 

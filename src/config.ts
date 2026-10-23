@@ -38,7 +38,7 @@ const schema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().default("ExamCure <no-reply@examcure.local>"),
-  STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
+  STORAGE_DRIVER: z.enum(["local", "s3", "mongo"]).default("local"),
   STORAGE_PATH: z.string().default("./data/files"),
   S3_ENDPOINT: z.union([z.string().url(), z.literal("")]).optional(),
   S3_REGION: z.string().default("us-east-1"),
@@ -92,8 +92,8 @@ export function loadConfig(
       throw new Error("JWT_SECRET must be changed in production");
     if (!source.MONGODB_URI || /YOUR_|USER:PASSWORD/.test(config.MONGODB_URI))
       throw new Error("MONGODB_URI is required in production");
-    if (config.STORAGE_DRIVER !== "s3")
-      throw new Error("Production requires private S3 storage");
+    if (config.STORAGE_DRIVER === "local")
+      throw new Error("Production requires S3 or MongoDB file storage");
     if (
       purpose === "api" &&
       config.OTP_DELIVERY === "smtp" &&

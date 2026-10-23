@@ -7,13 +7,66 @@ import {
   GetObjectCommand,
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
+import { GridFSBucket } from "mongodb";
 import type { AppConfig } from "../config.js";
+import type { AppDatabase } from "../db/database.js";
 export interface FileStorage {
   put(key: string, buffer: Buffer, contentType: string): Promise<void>;
   get(key: string): Promise<Buffer>;
   size(key: string): Promise<number | null>;
 }
-export function createStorage(config: AppConfig): FileStorage {
+export function createStorage(
+  config: AppConfig,
+  db?: AppDatabase,
+): FileStorage {
+  if (config.STORAGE_DRIVER === "mongo") {
+    if (!db) throw new Error("MongoDB file storage requires a database");
+    let bucket: GridFSBucket | undefined;
+    const open = async () => {
+      await db.ready;
+      return (bucket ??= new GridFSBucket(db.client.db(db.databaseName), {
+        bucketName: "material_files",
+      }));
+    };
+    const newest = async (key: string) =>
+      (await open())
+        .find(
+          { filename: key },
+          { sort: { uploadDate: -1, _id: -1 }, limit: 1 },
+        )
+        .next();
+    return {
+      async put(key, buffer, contentType) {
+        const files = await open();
+        await new Promise<void>((done, fail) =>
+          files
+            .openUploadStream(key, { metadata: { contentType } })
+            .on("error", fail)
+            .on("finish", () => done())
+            .end(buffer),
+        );
+        // Keep the newest revision only; concurrent puts converge on one file
+        const all = await files
+          .find({ filename: key }, { sort: { uploadDate: -1, _id: -1 } })
+          .toArray();
+        for (const old of all.slice(1))
+          await files.delete(old._id).catch((error) => {
+            if (!/File not found/.test(String(error?.message))) throw error;
+          });
+      },
+      async get(key) {
+        const file = await newest(key);
+        if (!file) throw new Error("File missing");
+        const chunks: Buffer[] = [];
+        for await (const chunk of (await open()).openDownloadStream(file._id))
+          chunks.push(chunk as Buffer);
+        return Buffer.concat(chunks);
+      },
+      async size(key) {
+        return (await newest(key))?.length ?? null;
+      },
+    };
+  }
   if (config.STORAGE_DRIVER === "s3") {
     const client = new S3Client({
       region: config.S3_REGION,
