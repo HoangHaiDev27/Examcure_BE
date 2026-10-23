@@ -66,3 +66,13 @@ describe("loadConfig STORAGE_DRIVER", () => {
     ).toThrow("Production requires S3 or MongoDB file storage");
   });
 });
+
+describe("loadConfig ASSISTANT_DAILY_LIMIT", () => {
+  it("defaults to 20 and validates the range", () => {
+    const env = { ...productionEnv, OTP_DELIVERY: "log" };
+    expect(loadConfig(env).ASSISTANT_DAILY_LIMIT).toBe(20);
+    expect(loadConfig({ ...env, ASSISTANT_DAILY_LIMIT: "50" }).ASSISTANT_DAILY_LIMIT).toBe(50);
+    for (const bad of ["0", "1001", "x"])
+      expect(() => loadConfig({ ...env, ASSISTANT_DAILY_LIMIT: bad })).toThrow();
+  });
+});

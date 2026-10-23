@@ -132,6 +132,21 @@ export class AppDatabase {
       upsert,
     });
   }
+  /** Atomic find-and-modify returning the document after the update (null if nothing matched and no upsert). */
+  async findOneAndUpdate(
+    name: string,
+    filter: Filter<AppDocument>,
+    update: UpdateFilter<AppDocument>,
+    upsert = false,
+  ): Promise<DataRow | null> {
+    await this.ready;
+    return this.collection(name).findOneAndUpdate(filter, update, {
+      ...this.options(),
+      upsert,
+      returnDocument: "after",
+      projection: { _id: 0 },
+    });
+  }
   async updateMany(
     name: string,
     filter: Filter<AppDocument>,

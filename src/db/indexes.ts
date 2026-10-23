@@ -53,6 +53,10 @@ const indexes: Record<string, IndexDescription[]> = {
     },
     { key: { exam_id: 1 } },
   ],
+  assistant_usage: [
+    { key: { user_id: 1, day: 1 }, unique: true },
+    { key: { purge_at: 1 }, expireAfterSeconds: 0 },
+  ],
   audit_logs: [{ key: { created_at: -1 } }],
   feedback: [
     { key: { status: 1, created_at: -1 } },

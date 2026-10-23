@@ -47,6 +47,7 @@ const schema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().optional(),
   S3_FORCE_PATH_STYLE: booleanFromEnv.default(false),
   MATERIAL_PROCESSING_MODE: z.enum(["inline", "worker"]).default("inline"),
+  ASSISTANT_DAILY_LIMIT: z.coerce.number().int().min(1).max(1000).default(20),
 });
 export type AppConfig = z.infer<typeof schema>;
 export function loadConfig(
