@@ -333,7 +333,7 @@ export const openApiDocument = {
       put: {
         tags: ["Admin"],
         security: [{ bearerAuth: [] }],
-        summary: "Upload private original PPTX bytes (20 MB max)",
+        summary: "Upload private original PPTX/DOCX bytes (20 MB max)",
         responses: {
           "200": { description: "Uploaded" },
           "400": { description: "Size/type mismatch" },
@@ -345,7 +345,7 @@ export const openApiDocument = {
       post: {
         tags: ["Admin"],
         security: [{ bearerAuth: [] }],
-        summary: "Verify upload and synchronously index PPTX text",
+        summary: "Verify upload and synchronously index PPTX/DOCX text",
         parameters: [
           {
             name: "versionId",
@@ -356,7 +356,7 @@ export const openApiDocument = {
         ],
         responses: {
           "200": { description: "Text indexed and material ready" },
-          "422": { description: "PPTX extraction or indexing failed" },
+          "422": { description: "PPTX/DOCX extraction or indexing failed" },
         },
       },
     },
@@ -754,7 +754,7 @@ export const openApiDocument = {
       get: {
         tags: ["Materials"],
         security: [{ bearerAuth: [] }],
-        summary: "Read extracted PPTX slide text and notes",
+        summary: "Read extracted PPTX slide / DOCX section text and notes",
         parameters: [
           {
             name: "versionId",
@@ -797,7 +797,7 @@ export const openApiDocument = {
       get: {
         tags: ["Materials"],
         security: [{ bearerAuth: [] }],
-        summary: "Create a short-lived original PPTX download URL",
+        summary: "Create a short-lived original PPTX/DOCX download URL",
         parameters: [
           {
             name: "versionId",

@@ -40,7 +40,7 @@ flowchart LR
   `npm run setup:mongodb-vector`; dimension phải khớp model embedding.
 
 `render.yaml` chia sẻ MongoDB/S3 của web service cho worker qua `fromService`.
-Worker là tùy chọn: bỏ entry nếu chỉ cần PPTX text; để chạy worker, đặt
+Worker là tùy chọn: bỏ entry nếu chỉ cần text PPTX/DOCX; để chạy worker, đặt
 `MATERIAL_PROCESSING_MODE=worker` ở API. Dockerfile worker build TypeScript
 và cài LibreOffice/Poppler. Google/SMTP chỉ cần trên API.
 
@@ -57,7 +57,7 @@ OpenAI cần kiểm tra bằng cấu hình thật trước cutover.
 1. Đăng ký → OTP qua mail → xác thực → đăng nhập → reload vẫn giữ phiên.
 2. Google qua callback FE; URL không chứa token.
 3. Bootstrap/import admin; API cập nhật ngay khi đổi quyền.
-4. Upload PPTX → READY → xem text → tải gốc; sai dung lượng bị từ chối.
+4. Upload PPTX/DOCX → READY → xem text → tải gốc; sai dung lượng bị từ chối.
 5. Sinh câu hỏi → duyệt → tạo đề; kiểm tra đúng tài liệu/môn nguồn.
 6. Logout/reset: access/refresh và link tải cũ bị từ chối.
 
@@ -86,7 +86,7 @@ Không chạy `docker compose down -v` nếu cần giữ dữ liệu local.
 UUID/API response được giữ để FE không đổi hợp đồng. Unique indexes bảo vệ email,
 Google subject, mã môn, số version, slide và refresh hash. TTL dọn OTP/session quá
 hạn; API luôn tự kiểm tra expiry, không phụ thuộc thời điểm TTL chạy. Metadata giữ
-ISO timestamps cho API; trường TTL là BSON Date. File PPTX/PDF/PNG nằm trong private
+ISO timestamps cho API; trường TTL là BSON Date. File PPTX/DOCX/PDF/PNG nằm trong private
 S3 hoặc thư mục local, không lưu binary vào document MongoDB.
 
 Nguồn: [MongoDB transactions](https://www.mongodb.com/docs/drivers/node/current/crud/transactions/).

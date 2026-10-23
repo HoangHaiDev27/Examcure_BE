@@ -57,7 +57,7 @@ Tạo metadata tại `/Admin/materials`, upload bytes qua PUT `uploadPath`, rồ
 hạn 20 MB. File gốc riêng tư. Sinh viên đọc slide text và lấy URL tải ký 60 giây;
 URL bị thu hồi khi logout/reset phiên cấp URL.
 
-`MATERIAL_PROCESSING_MODE=inline` index text PPTX ngay trên API.
+`MATERIAL_PROCESSING_MODE=inline` index text PPTX/DOCX ngay trên API.
 `worker` đưa vào queue MongoDB, trả 202; worker chuyển PDF/PNG bằng
 LibreOffice/Poppler rồi index MongoDB. API/worker dùng cùng MongoDB/S3.
 Worker local: `npm run worker:materials`.

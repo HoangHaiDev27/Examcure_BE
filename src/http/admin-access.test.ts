@@ -370,6 +370,74 @@ describe("own database and private file storage", () => {
     expect(played.status).toBe(200);
     expect(played.body.exam.questions).toHaveLength(1);
   });
+  it("uploads DOCX, splits it into ordered sections and indexes them", async () => {
+    const admin = await identity("admin"),
+      student = await identity(),
+      subjectId = await subject(admin.token),
+      para = (t: string, style?: string) =>
+        `<w:p>${style ? `<w:pPr><w:pStyle w:val="${style}"/></w:pPr>` : ""}<w:r><w:t>${t}</w:t></w:r></w:p>`,
+      zip = new JSZip();
+    zip.file(
+      "word/document.xml",
+      `<w:document xmlns:w="w"><w:body>${para("Queue", "Heading1")}${para("A queue is FIFO.")}${para("Stack", "Heading1")}${para("A stack is LIFO.")}</w:body></w:document>`,
+    );
+    const file = await zip.generateAsync({ type: "nodebuffer" }),
+      created = await request(built.app)
+        .post("/api/v1/Admin/materials")
+        .auth(admin.token, { type: "bearer" })
+        .send({
+          subjectId,
+          title: "Word",
+          fileName: "lecture.docx",
+          mimeType:
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          sizeBytes: file.length,
+        });
+    expect(created.status).toBe(201);
+    expect(
+      (
+        await request(built.app)
+          .put("/api/v1" + created.body.uploadPath)
+          .auth(admin.token, { type: "bearer" })
+          .set("Content-Type", "application/octet-stream")
+          .send(file)
+      ).status,
+    ).toBe(200);
+    const complete = await request(built.app)
+      .post(`/api/v1/Admin/materials/${created.body.versionId}/complete-upload`)
+      .auth(admin.token, { type: "bearer" })
+      .send({});
+    expect(complete.status).toBe(200);
+    expect(complete.body).toMatchObject({ status: "ready", slideCount: 2 });
+    const slides = await request(built.app)
+      .get(`/api/v1/Materials/${created.body.versionId}/slides`)
+      .auth(student.token, { type: "bearer" });
+    expect(slides.body.slides.map((x: any) => x.slide_number)).toEqual([1, 2]);
+    expect(slides.body.slides[0].text_content).toContain("FIFO");
+    expect(slides.body.slides[1].text_content).toContain("LIFO");
+  });
+  it("rejects unsupported material extensions and mismatched MIME types", async () => {
+    const admin = await identity("admin"),
+      subjectId = await subject(admin.token),
+      docxMime =
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      pptxMime =
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+    for (const [fileName, mimeType] of [
+      ["lecture.doc", "application/msword"],
+      ["lecture.doc", "application/octet-stream"],
+      ["lecture.docx", pptxMime],
+      ["lecture.pptx", docxMime],
+      ["lecture.pdf", "application/pdf"],
+    ] as const) {
+      const r = await request(built.app)
+        .post("/api/v1/Admin/materials")
+        .auth(admin.token, { type: "bearer" })
+        .send({ subjectId, title: "x", fileName, mimeType, sizeBytes: 100 });
+      expect(r.status, fileName + mimeType).toBe(400);
+      expect(r.body.code).toBe("INVALID_FILE");
+    }
+  });
   it("checks upload size/state, rejects student writes and never exposes uploading files", async () => {
     const admin = await identity("admin"),
       student = await identity(),

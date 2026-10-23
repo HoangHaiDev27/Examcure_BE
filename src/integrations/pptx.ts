@@ -6,7 +6,7 @@ export type ExtractedPptxSlide = {
   notes: string;
 };
 
-function decodeXmlText(value: string): string {
+export function decodeXmlText(value: string): string {
   return value
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")

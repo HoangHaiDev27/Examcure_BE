@@ -98,6 +98,7 @@ describe("ExamcureBe authentication", () => {
       storage: true,
       googleAuth: false,
       pptxTextExtraction: true,
+      docxTextExtraction: true,
     });
     expect(JSON.stringify(response.body)).not.toContain(config.JWT_SECRET);
   });

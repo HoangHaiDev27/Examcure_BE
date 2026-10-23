@@ -8,7 +8,7 @@ import type { TokenService } from "../services/token.service.js";
 import { isOpenAIConfigured } from "../integrations/env.js";
 import { requestExamGeneration } from "../services/exam-generation.service.js";
 import { AppError } from "../lib/errors.js";
-import { ingestPptxMaterialVersion } from "../services/pptx-ingestion.service.js";
+import { ingestMaterialVersion } from "../services/material-ingestion.service.js";
 import { requireAuth, requireAdmin } from "./auth.middleware.js";
 import { validateBody } from "./validation.js";
 const uuid = z.string().uuid();
@@ -123,16 +123,19 @@ export function createAdminRouter(
   router.post("/materials", validateBody(materialSchema), async (req, res) => {
     const body = req.body as z.infer<typeof materialSchema>,
       fileName = safeFileName(body.fileName);
+    const lower = fileName.toLowerCase(),
+      allowedMime = lower.endsWith(".pptx")
+        ? "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        : lower.endsWith(".docx")
+          ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          : null;
     if (
-      !fileName.toLowerCase().endsWith(".pptx") ||
-      ![
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        "application/octet-stream",
-      ].includes(body.mimeType)
+      !allowedMime ||
+      ![allowedMime, "application/octet-stream"].includes(body.mimeType)
     )
       throw new AppError(
         400,
-        "Chỉ chấp nhận file .pptx tối đa 20 MB.",
+        "Chỉ chấp nhận file .pptx hoặc .docx tối đa 20 MB.",
         "INVALID_FILE",
       );
     res
@@ -167,7 +170,7 @@ export function createAdminRouter(
         if (req.body.length < 4 || req.body.readUInt32LE(0) !== 0x04034b50)
           throw new AppError(
             400,
-            "File PowerPoint không hợp lệ.",
+            "File PowerPoint/Word không hợp lệ.",
             "INVALID_FILE",
           );
         await storage.put(version.original_path, req.body, version.mime_type);
@@ -231,12 +234,12 @@ export function createAdminRouter(
       res.json({
         versionId,
         status: "ready",
-        ...(await ingestPptxMaterialVersion(versionId, db, storage)),
+        ...(await ingestMaterialVersion(versionId, db, storage)),
       });
     } catch (error) {
       throw new AppError(
         422,
-        "Không thể trích xuất/lập chỉ mục PowerPoint. Xem trạng thái tài liệu để biết lỗi.",
+        "Không thể trích xuất/lập chỉ mục tài liệu. Xem trạng thái tài liệu để biết lỗi.",
         "PPTX_PROCESSING_FAILED",
       );
     }

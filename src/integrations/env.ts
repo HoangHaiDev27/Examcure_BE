@@ -42,5 +42,6 @@ export function integrationStatus() {
       commandAvailable("PDFTOPPM_BIN", "pdftoppm", ["-v"]) &&
       commandAvailable("PDFTOTEXT_BIN", "pdftotext", ["-v"]),
     pptxTextExtraction: true,
+    docxTextExtraction: true,
   };
 }

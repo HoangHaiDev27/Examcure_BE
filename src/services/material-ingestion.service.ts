@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { createEmbeddings } from "../integrations/openai.js";
 import { getVectorCollection } from "../integrations/mongodb.js";
+import { extractDocxSections } from "../integrations/docx.js";
 import { chunkSlideText, extractPptxText } from "../integrations/pptx.js";
 import type { AppDatabase } from "../db/database.js";
 import { ContentRepository } from "../db/content.js";
@@ -11,7 +12,7 @@ const EMBEDDING_DIMENSIONS = Number(
   process.env.MONGODB_VECTOR_DIMENSIONS || "1536",
 );
 
-export type PptxIngestionResult = {
+export type MaterialIngestionResult = {
   slideCount: number;
   chunkCount: number;
 };
@@ -26,22 +27,27 @@ function errorMessage(error: unknown): string {
  * Synchronous, no-worker ingestion mode. It deliberately only handles PPTX text
  * and notes; visual previews require the optional LibreOffice/Poppler worker.
  */
-export async function ingestPptxMaterialVersion(
+export async function ingestMaterialVersion(
   versionId: string,
   db: AppDatabase,
   storage: FileStorage,
-): Promise<PptxIngestionResult> {
+): Promise<MaterialIngestionResult> {
   const repo = new ContentRepository(db);
   try {
     const version = await repo.version(versionId);
     if (!version) throw new Error("Material version not found");
     const subject = { subject_id: version.subject_id as string };
-    if (!version.original_filename.toLowerCase().endsWith(".pptx"))
-      throw new Error("Only .pptx is supported");
+    const filename = version.original_filename.toLowerCase();
+    const extract = filename.endsWith(".pptx")
+      ? extractPptxText
+      : filename.endsWith(".docx")
+        ? extractDocxSections
+        : null;
+    if (!extract) throw new Error("Only .pptx or .docx is supported");
     const original = await storage.get(version.original_path);
-    const extractedSlides = await extractPptxText(original);
+    const extractedSlides = await extract(original);
     if (extractedSlides.length === 0)
-      throw new Error("No slides were found in the PowerPoint file");
+      throw new Error("No slides or sections were found in the file");
     const slideRows = extractedSlides.map((slide) => ({
       material_version_id: version.id,
       slide_number: slide.slideNumber,
@@ -70,7 +76,7 @@ export async function ingestPptxMaterialVersion(
       })),
     );
     if (chunkInputs.length === 0)
-      throw new Error("No extractable text was found in the PowerPoint file");
+      throw new Error("No extractable text was found in the file");
 
     const collection = await getVectorCollection();
     await collection.createIndex({ chunk_id: 1 }, { unique: true });

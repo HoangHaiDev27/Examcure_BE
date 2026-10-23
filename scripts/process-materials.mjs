@@ -142,7 +142,7 @@ async function processMaterial(job) {
       .filter((name) => /^slide-\d+\.png$/.test(name))
       .sort(numericFileOrder);
     if (images.length === 0)
-      throw new Error("PowerPoint conversion produced no slide images");
+      throw new Error("Document conversion produced no slide images");
 
     const assetBase = `${version.material_id}/${version.id}`;
     const previewPath = `${assetBase}/preview.pdf`;
@@ -197,7 +197,7 @@ async function processMaterial(job) {
       });
     }
     if (chunkInputs.length === 0)
-      throw new Error("No extractable text was found in the PowerPoint file");
+      throw new Error("No extractable text was found in the file");
 
     const collection = mongo.db(mongoDatabase).collection(mongoCollection);
     await collection.createIndex({ chunk_id: 1 }, { unique: true });
