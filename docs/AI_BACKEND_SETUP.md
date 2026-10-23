@@ -25,8 +25,11 @@ flowchart LR
   Auth, OTP, sessions, quyền admin, môn/tài liệu, jobs, câu hỏi và đề đều lưu MongoDB.
   Transaction dùng session MongoDB driver xuyên suốt và majority write concern.
   Document khóa nghiệp vụ ngăn bootstrap/đổi quyền/version cạnh tranh sai.
-- `STORAGE_DRIVER=s3`, bucket private, region, access/secret key. AWS S3 có thể
-  bỏ endpoint; S3 tương thích cần endpoint. MinIO thường cần path style.
+- Production dùng `STORAGE_DRIVER=mongo`: file lưu trong MongoDB GridFS bucket
+  `material_files`, ≤20 MB mỗi file, không cần dịch vụ hay key thêm. Atlas M0
+  giới hạn cả database 512 MB. Vẫn hỗ trợ `s3`: bucket private, region,
+  access/secret key; AWS S3 có thể bỏ endpoint, S3 tương thích cần endpoint,
+  MinIO thường cần path style.
 - SMTP host/user/pass/from, port và TLS đúng nhà cung cấp.
 - `CORS_ORIGIN=https://<frontend>`, `API_PUBLIC_URL=https://<frontend>/api/v1`.
 - FE: `NEXT_PUBLIC_API_URL=/api/v1`, `EXAMCURE_API_URL=https://<backend-origin>`.

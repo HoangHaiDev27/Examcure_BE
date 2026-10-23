@@ -1,7 +1,7 @@
 # Chuyển toàn hệ thống khỏi Supabase
 
 Code FE/BE/worker hiện không gọi Supabase. Auth và dữ liệu nằm trong ExamcureBe;
-MongoDB lưu toàn bộ dữ liệu ứng dụng; S3, SMTP và Google là dịch vụ hỗ trợ. Các migration
+MongoDB lưu toàn bộ dữ liệu ứng dụng; SMTP và Google là dịch vụ hỗ trợ. Các migration
 cũ được giữ trong lịch sử Git, không áp dụng cho database mới.
 
 Chưa chuyển dữ liệu hoặc triển khai trên hệ thống thật. Không xóa project cũ

@@ -2,7 +2,7 @@
 
 ExamcureBe quản lý tài khoản, phiên đăng nhập, quyền admin, môn học, tài liệu,
 câu hỏi và đề thi. Toàn bộ dữ liệu ứng dụng và vector nằm trong MongoDB.
-Production dùng MongoDB replica set/Atlas và S3 riêng tư; local dùng MongoDB
+Production dùng MongoDB replica set/Atlas (file lưu GridFS); local dùng MongoDB
 replica set Docker và thư mục file của BE.
 Supabase không còn là dependency hay dịch vụ runtime.
 
@@ -18,7 +18,7 @@ npm run dev
 
 API: `http://localhost:5010/api/v1`; Swagger: `/api-docs`. Collections/indexes được
 tạo idempotent khi khởi động. Production bắt buộc MongoDB replica set/Atlas,
-S3/SMTP/HTTPS/secret. API từ chối MongoDB standalone vì auth/admin dùng transaction.
+SMTP/HTTPS/secret. API từ chối MongoDB standalone vì auth/admin dùng transaction.
 
 FE dùng `NEXT_PUBLIC_API_URL=/api/v1`, `EXAMCURE_API_URL=http://localhost:5010`.
 BE đặt `CORS_ORIGIN=http://localhost:3000`,
@@ -59,7 +59,7 @@ URL bị thu hồi khi logout/reset phiên cấp URL.
 
 `MATERIAL_PROCESSING_MODE=inline` index text PPTX/DOCX ngay trên API.
 `worker` đưa vào queue MongoDB, trả 202; worker chuyển PDF/PNG bằng
-LibreOffice/Poppler rồi index MongoDB. API/worker dùng cùng MongoDB/S3.
+LibreOffice/Poppler rồi index MongoDB. API/worker dùng cùng MongoDB.
 Worker local: `npm run worker:materials`.
 
 ## Kiểm tra

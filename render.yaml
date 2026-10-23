@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://render.com/schema/render.yaml.json
-# Supply MongoDB replica set/Atlas and private S3 storage credentials.
+# Supply MongoDB replica set/Atlas; files are stored in MongoDB (GridFS).
 services:
   - type: web
     name: examcure-be
@@ -24,19 +24,7 @@ services:
       - key: API_PUBLIC_URL
         sync: false
       - key: STORAGE_DRIVER
-        value: s3
-      - key: S3_ENDPOINT
-        sync: false
-      - key: S3_REGION
-        value: us-east-1
-      - key: S3_BUCKET
-        sync: false
-      - key: S3_ACCESS_KEY_ID
-        sync: false
-      - key: S3_SECRET_ACCESS_KEY
-        sync: false
-      - key: S3_FORCE_PATH_STYLE
-        value: "false"
+        value: mongo
       - key: SMTP_HOST
         sync: false
       - key: SMTP_USER
@@ -71,21 +59,9 @@ services:
       - key: NODE_ENV
         value: production
       - key: STORAGE_DRIVER
-        value: s3
+        value: mongo
       - key: MATERIAL_WORKER_NAME
         value: render-material-worker
-      - key: S3_ENDPOINT
-        fromService: { type: web, name: examcure-be, envVarKey: S3_ENDPOINT }
-      - key: S3_REGION
-        fromService: { type: web, name: examcure-be, envVarKey: S3_REGION }
-      - key: S3_BUCKET
-        fromService: { type: web, name: examcure-be, envVarKey: S3_BUCKET }
-      - key: S3_ACCESS_KEY_ID
-        fromService: { type: web, name: examcure-be, envVarKey: S3_ACCESS_KEY_ID }
-      - key: S3_SECRET_ACCESS_KEY
-        fromService: { type: web, name: examcure-be, envVarKey: S3_SECRET_ACCESS_KEY }
-      - key: S3_FORCE_PATH_STYLE
-        fromService: { type: web, name: examcure-be, envVarKey: S3_FORCE_PATH_STYLE }
       - key: MONGODB_URI
         fromService: { type: web, name: examcure-be, envVarKey: MONGODB_URI }
       - key: MONGODB_DATABASE
