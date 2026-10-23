@@ -78,6 +78,14 @@ export function finalizeAnswer(
   };
 }
 
+/** Fixed-vocabulary description of a failure: parse errors, error name and upstream HTTP status only. */
+export function describeFailure(error: unknown): string {
+  if (error instanceof SyntaxError) return "unparseable model output";
+  if (!(error instanceof Error)) return "unknown";
+  const status = error.message.match(/^OpenAI API (\d{3})/)?.[1];
+  return status ? `${error.name} upstream status ${status}` : error.name;
+}
+
 export class AssistantService {
   private readonly usage: AssistantUsageRepository;
   private readonly content: ContentRepository;
@@ -168,8 +176,8 @@ export class AssistantService {
       };
     } catch (error) {
       await this.usage.refundAssistantQuota(userId, reservation.day).catch(() => undefined);
-      // Never log message content or leak upstream text to the client.
-      console.error("assistant upstream failure:", error instanceof Error ? error.message : "unknown");
+      // Never log message bodies (they may echo student text) or leak upstream text to the client.
+      console.error("assistant upstream failure:", describeFailure(error));
       throw new AppError(502, "Trợ lý AI đang bận, vui lòng thử lại sau ít phút.", "ASSISTANT_UPSTREAM_FAILED");
     }
   }

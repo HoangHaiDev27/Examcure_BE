@@ -38,23 +38,37 @@ export class AssistantUsageRepository {
   async reserveAssistantQuota(userId: string, now: Date, limit: number): Promise<QuotaReservation> {
     const day = assistantDayKey(now);
     const key = `${userId}:${day}`;
+    const filter = { user_id: userId, day, count: { $lt: limit } };
+    const update = {
+      $inc: { count: 1 },
+      $set: { updated_at: now },
+    };
+    const granted = (doc: { count?: unknown } | null): QuotaReservation | null => {
+      if (!doc) return null;
+      const used = Number(doc.count ?? 0);
+      return { ok: true, day, used, remaining: Math.max(0, limit - used) };
+    };
     try {
       const doc = await this.db.findOneAndUpdate(
         "assistant_usage",
-        { user_id: userId, day, count: { $lt: limit } },
+        filter,
         {
-          $inc: { count: 1 },
-          $set: { updated_at: now },
+          ...update,
           $setOnInsert: { _id: key, id: key, purge_at: new Date(dayEnd(day).getTime() + PURGE_AFTER_DAY_END_MS) },
         },
         true,
       );
-      const used = Number(doc?.count ?? 0);
-      return { ok: true, day, used, remaining: Math.max(0, limit - used) };
+      const result = granted(doc);
+      if (result) return result;
     } catch (error) {
-      if (isDuplicateKey(error)) return { ok: false, day, used: limit, remaining: 0 };
-      throw error;
+      if (!isDuplicateKey(error)) throw error;
+      // Either the day's document is at the limit, or a concurrent first request of the
+      // day just created it. Retry the same conditional update without upsert: it only
+      // matches while count < limit, so the limit still can never be exceeded.
+      const retry = granted(await this.db.findOneAndUpdate("assistant_usage", filter, update, false));
+      if (retry) return retry;
     }
+    return { ok: false, day, used: limit, remaining: 0 };
   }
 
   /** Gives back one unit for the exact day that was reserved; never goes below zero. */

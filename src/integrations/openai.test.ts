@@ -138,7 +138,7 @@ describe("study assistant", () => {
     vi.stubGlobal("fetch", fetchMock);
     expect(await answerStudyQuestion({ messages: turns, chunks: [chunk] })).toEqual({ answer: "ok", grounded: false, source_chunk_ids: [] });
     const body = JSON.parse((fetchMock.mock.calls[0]![1] as { body: string }).body);
-    expect(body).toMatchObject({ model: "chat-model", store: false, reasoning: { effort: "none" } });
+    expect(body).toMatchObject({ model: "chat-model", store: false, reasoning: { effort: "none" }, max_output_tokens: 1500 });
     expect(body.text.format).toMatchObject({ type: "json_schema", strict: true });
     expect(body.instructions).toContain("NGỮ CẢNH");
     vi.stubEnv("OPENAI_CHAT_MODEL", "");

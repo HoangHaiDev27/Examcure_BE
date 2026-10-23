@@ -55,7 +55,19 @@ describe("assistant quota", () => {
     expect((await repo.assistantUsage(u, before, 1)).used).toBe(0);
     expect((await repo.assistantUsage(u, after, 1)).used).toBe(1);
   });
+  // Open many pooled connections first so the reserves below really run in parallel.
+  const warmPool = () => Promise.all(Array.from({ length: 30 }, () => db.count("assistant_usage")));
+  it("grants every concurrent first-of-day reserve while under the limit", async () => {
+    await warmPool();
+    for (let round = 0; round < 5; round++) {
+      const u = randomUUID();
+      const results = await Promise.all(Array.from({ length: 12 }, () => repo.reserveAssistantQuota(u, T, 50)));
+      expect(results.filter((r) => r.ok)).toHaveLength(12);
+      expect((await db.findOne("assistant_usage", { user_id: u }))!.count).toBe(12);
+    }
+  });
   it("never exceeds the limit under concurrency", async () => {
+    await warmPool();
     const u = randomUUID();
     const results = await Promise.all(Array.from({ length: 15 }, () => repo.reserveAssistantQuota(u, T, 5)));
     expect(results.filter((r) => r.ok)).toHaveLength(5);

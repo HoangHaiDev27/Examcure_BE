@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { finalizeAnswer, retrievalQuery } from "./assistant.service.js";
+import { describeFailure, finalizeAnswer, retrievalQuery } from "./assistant.service.js";
 
 describe("retrievalQuery", () => {
   it("uses the last user message, adding the previous one when it is short", () => {
@@ -19,6 +19,15 @@ describe("retrievalQuery", () => {
         { role: "user", content: long },
       ]),
     ).toBe(long);
+  });
+});
+
+describe("describeFailure", () => {
+  it("never includes message bodies", () => {
+    expect(describeFailure(new SyntaxError('Unexpected token "tin nhắn bí mật"'))).toBe("unparseable model output");
+    expect(describeFailure(new Error("OpenAI API 500: echo of student text"))).toBe("Error upstream status 500");
+    expect(describeFailure(new Error("vector down with student text"))).toBe("Error");
+    expect(describeFailure("x")).toBe("unknown");
   });
 });
 

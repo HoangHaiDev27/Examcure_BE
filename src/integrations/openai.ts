@@ -221,6 +221,7 @@ export async function answerStudyQuestion(input: {
       model: process.env.OPENAI_CHAT_MODEL?.trim() || requireIntegrationEnv("OPENAI_QUESTION_MODEL"),
       store: false,
       reasoning: { effort: "none" },
+      max_output_tokens: 1500,
       instructions: hasContext ? ASSISTANT_GROUNDED_INSTRUCTIONS : ASSISTANT_GENERAL_INSTRUCTIONS,
       input: buildAssistantInput(input),
       text: {
