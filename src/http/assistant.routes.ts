@@ -39,6 +39,12 @@ export function createAssistantRouter(tokens: TokenService, db: AppDatabase, con
       standardHeaders: "draft-8",
       legacyHeaders: false,
       keyGenerator: (req) => `assistant:${req.userId}`,
+      handler: (_req, res) => {
+        res.status(429).json({
+          message: "Bạn hỏi nhanh quá, vui lòng đợi một phút rồi thử lại.",
+          code: "RATE_LIMITED",
+        });
+      },
     }),
     validateBody(chatSchema),
     async (req, res) => {

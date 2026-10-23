@@ -216,7 +216,9 @@ describe("failures and limits", () => {
     const t = await user();
     // 400s are cheap and do not touch quota but still count toward the rate limit.
     for (let i = 0; i < 6; i++) expect((await chat(t, { messages: [] })).status).toBe(400);
-    expect((await chat(t, { messages: [] })).status).toBe(429);
+    const limited = await chat(t, { messages: [] });
+    expect(limited.status).toBe(429);
+    expect(limited.body.code).toBe("RATE_LIMITED");
     expect((await chat(await user(), { messages: [] })).status).toBe(400);
   });
 });
