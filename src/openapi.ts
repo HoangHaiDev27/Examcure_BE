@@ -485,9 +485,8 @@ export const openApiDocument = {
                     publishedAt: nullable("string"),
                     lastScore: nullable("number"),
                     difficulty: {
-                      type: "string",
-                      enum: ["basic", "medium", "advanced"],
-                      nullable: true,
+                      type: ["string", "null"],
+                      enum: ["basic", "medium", "advanced", null],
                     },
                     bestScore: nullable("number"),
                     attemptCount: { type: "integer" },
